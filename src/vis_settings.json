@@ -1,8 +1,8 @@
 {
   "visualization_settings": {
     "general": {
-      "width": 5000,
-      "height": 5000
+      "width": null,
+      "height": null
     },
     "molecule_types": [
       {
@@ -34,12 +34,12 @@
               {
                 "state_id": 0,
                 "name": "cap",
-                "svg_name": "cap"
+                "svg_name": "cap3"
               },
               {
                 "state_id": 1,
                 "name": "term",
-                "svg_name": "term"
+                "svg_name": "term3"
               }
             ]
           }
@@ -108,6 +108,11 @@
         "path": "../svgs/ssu.svg"
       },
       {
+        "name": "ssu2",
+        "type": "string",
+        "string": "<svg width=\"1000\" height=\"1000\"><rect width=\"2000\" height=\"2000\" style=\"fill:rgb(255,255,0);stroke-width:3;stroke:rgb(255,0,0)\"/></svg>"
+      },
+      {
         "name": "lsu",
         "type": "file",
         "path": "../svgs/lsu.svg"
@@ -131,6 +136,16 @@
         "name": "cap2",
         "type": "string",
         "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+      },
+      {
+        "name": "term3",
+        "type": "string",
+        "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(255,0,0);stroke-width:3;stroke:rgb(255,0,0)\"/></svg>"
+      },
+      {
+        "name": "cap3",
+        "type": "string",
+        "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
       }
     ]
   }

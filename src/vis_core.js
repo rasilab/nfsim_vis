@@ -265,8 +265,10 @@ export class Settings {
     );
     // initialize system from settings
     let vis_settings = settings_json["visualization_settings"];
-    let w = vis_settings["general"]["width"],
-      h = vis_settings["general"]["height"];
+    let w = vis_settings["general"]["width"] ? vis_settings["general"]["width"]:(window.innerWidth*10);
+    // TODO: figure out an automated way to do this
+    let h = vis_settings["general"]["height"] ? vis_settings["general"]["height"]:(window.innerHeight*10)-1000;
+    //
     let timeline = new SVG.Timeline();
     let canvas = SVG()
       .addTo("body")

@@ -47,18 +47,10 @@ ssu_inst_1_grp.size(2000, null);
 //   console.log(i);
 // });
 
-// let ssu_inst_2 = sys.add_actor_from_name('ssu');
-// ssu_inst_2.components['component1'].set_state_by_id(1);
-// ssu_inst_2.components['component2'].set_state_by_id(1);
-// let ssu_inst_2_grp = ssu_inst_2.render();
-// ssu_inst_2_grp.move(0,2000);
-// ssu_inst_2_grp.animate({
-//     duration: 2000,
-//     delay: 1000,
-//     when: 'now',
-//     swing: true,
-//     times: 5
-// }).transform({translate: [500,1500]});
+let ssu_inst_2 = sys.add_actor_from_name('ssu');
+ssu_inst_2.components['component1'].set_state_by_id(1);
+ssu_inst_2.components['component2'].set_state_by_id(1);
+
 
 let lsu_inst_1 = sys.add_actor_from_name("lsu");
 lsu_inst_1.components["component1"].set_state_by_id(1);
@@ -109,6 +101,29 @@ ssu_inst_1.animator = ssu_inst_1.animator
     times: 1,
   })
   .transform({ translate: [-500, -500], rotate: -125 }, ssu_inst_1_grp);
+
+// ssu2 
+let ssu_inst_2_grp = ssu_inst_2.render();
+ssu_inst_2_grp.move(0,2000);
+ssu_inst_2.animator = ssu_inst_2_grp.animate({
+  duration: 5000,
+  delay: 0,
+  when: "absolute",
+  swing: true,
+  times: 2,
+})
+.transform({ translate: [10, 10], rotate: 360 }, lsu_inst_1_grp)
+.animate({
+  duration: 100,
+  delay: 0,
+  when: "after",
+  swing: false,
+  times: 1,
+}).opacity(0.0)
+// Example removal after animation
+ssu_inst_2.animator.after(()=>{
+  ssu_inst_2_grp.remove();
+});
 
 
 // animate lsu separately

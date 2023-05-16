@@ -81,6 +81,11 @@
  </head>
 
   <body>
+
+    <!-- include js script -->
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.1/dist/svg.min.js"></script>
+    <script type="module" src="./vis_core.js"></script>
+    <!-- <script type="module" src="./vis_animate.js"></script> -->
     <div class="dropdown">
       <button id="molec_button" class="dropbtn">Molecule types</button>
       <div id="molec_dropdown" class="dropdown-content">
@@ -88,10 +93,6 @@
     </div>
     <div id="compbuttons">
     </div>
-    <!-- include js script -->
-    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.1/dist/svg.min.js"></script>
-    <script type="module" src="./vis_core.js"></script>
-    <!-- <script type="module" src="./vis_script.js"></script> -->
     <script type="module" src="./vis_mol_viewer.js"></script>
   </body>
 </html>
