@@ -1,152 +1,858 @@
 {
-  "visualization_settings": {
-    "general": {
-      "width": null,
-      "height": null
-    },
-    "molecule_types": [
-      {
-        "name": "ssu",
-        "svg_name": "ssu",
-        "components": [
-          {
-            "name": "component1",
-            "pos": [0, 500],
-            "current_state": 1,
-            "component_states": [
-              {
-                "state_id": 0,
-                "name": "cap",
-                "svg_name": "cap"
-              },
-              {
-                "state_id": 1,
-                "name": "term",
-                "svg_name": "term"
-              }
-            ]
-          },
-          {
-            "name": "component2",
-            "pos": [370, 0],
-            "current_state": 0,
-            "component_states": [
-              {
-                "state_id": 0,
-                "name": "cap",
-                "svg_name": "cap3"
-              },
-              {
-                "state_id": 1,
-                "name": "term",
-                "svg_name": "term3"
-              }
-            ]
-          }
+    "visualization_settings": {
+        "general": {
+            "width": null,
+            "height": null
+        },
+        "model": {
+            "sbml": {
+                "@xmlns": "http://www.sbml.org/sbml/level3",
+                "@level": "3",
+                "@version": "1",
+                "model": {
+                    "@id": "test",
+                    "ListOfParameters": {
+                        "Parameter": [
+                            {
+                                "@id": "kon",
+                                "@type": "Constant",
+                                "@value": "10",
+                                "@expr": "10"
+                            },
+                            {
+                                "@id": "koff",
+                                "@type": "Constant",
+                                "@value": "5",
+                                "@expr": "5"
+                            },
+                            {
+                                "@id": "kcat",
+                                "@type": "Constant",
+                                "@value": "0.7",
+                                "@expr": "0.7"
+                            },
+                            {
+                                "@id": "dephos",
+                                "@type": "Constant",
+                                "@value": "0.5",
+                                "@expr": "0.5"
+                            }
+                        ]
+                    },
+                    "ListOfMoleculeTypes": {
+                        "MoleculeType": [
+                            {
+                                "@id": "X",
+                                "ListOfComponentTypes": {
+                                    "ComponentType": [
+                                        {
+                                            "@id": "y"
+                                        },
+                                        {
+                                            "@id": "p",
+                                            "ListOfAllowedStates": {
+                                                "AllowedState": [
+                                                    {
+                                                        "@id": "0",
+                                                        "svg_name": "0"
+                                                    },
+                                                    {
+                                                        "@id": "1",
+                                                        "svg_name": "1"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "svg_name": "X"
+                            },
+                            {
+                                "@id": "Y",
+                                "ListOfComponentTypes": {
+                                    "ComponentType": {
+                                        "@id": "x"
+                                    }
+                                },
+                                "svg_name": "Y"
+                            }
+                        ]
+                    },
+                    "ListOfCompartments": {
+                        "compartment": [
+                            {
+                                "@id": "b",
+                                "@spatialDimensions": "3",
+                                "@size": "100"
+                            },
+                            {
+                                "@id": "a",
+                                "@spatialDimensions": "2",
+                                "@size": "10",
+                                "@outside": "b"
+                            }
+                        ]
+                    },
+                    "ListOfSpecies": {
+                        "Species": [
+                            {
+                                "@id": "S1",
+                                "@concentration": "5000",
+                                "@name": "@b::X(p~0,y)",
+                                "@compartment": "b",
+                                "ListOfMolecules": {
+                                    "Molecule": {
+                                        "@id": "S1_M1",
+                                        "@name": "X",
+                                        "@compartment": "b",
+                                        "ListOfComponents": {
+                                            "Component": [
+                                                {
+                                                    "@id": "S1_M1_C1",
+                                                    "@name": "p",
+                                                    "@state": "0",
+                                                    "@numberOfBonds": "0"
+                                                },
+                                                {
+                                                    "@id": "S1_M1_C2",
+                                                    "@name": "y",
+                                                    "@numberOfBonds": "0"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "S2",
+                                "@concentration": "0",
+                                "@name": "@b::X(p~1,y)",
+                                "@compartment": "b",
+                                "ListOfMolecules": {
+                                    "Molecule": {
+                                        "@id": "S2_M1",
+                                        "@name": "X",
+                                        "@compartment": "b",
+                                        "ListOfComponents": {
+                                            "Component": [
+                                                {
+                                                    "@id": "S2_M1_C1",
+                                                    "@name": "p",
+                                                    "@state": "1",
+                                                    "@numberOfBonds": "0"
+                                                },
+                                                {
+                                                    "@id": "S2_M1_C2",
+                                                    "@name": "y",
+                                                    "@numberOfBonds": "0"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "S3",
+                                "@concentration": "500",
+                                "@name": "@b::Y(x)",
+                                "@compartment": "b",
+                                "ListOfMolecules": {
+                                    "Molecule": {
+                                        "@id": "S3_M1",
+                                        "@name": "Y",
+                                        "@compartment": "b",
+                                        "ListOfComponents": {
+                                            "Component": {
+                                                "@id": "S3_M1_C1",
+                                                "@name": "x",
+                                                "@numberOfBonds": "0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "ListOfReactionRules": {
+                        "ReactionRule": [
+                            {
+                                "@id": "RR1",
+                                "@name": "_R1",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": [
+                                        {
+                                            "@id": "RR1_RP1",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR1_RP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR1_RP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR1_RP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "0",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "@id": "RR1_RP2",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR1_RP2_M1",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_RP2_M1_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR1_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR1_PP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR1_PP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR1_PP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "0",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR1_PP1_M2",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_PP1_M2_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR1_PP1_B1",
+                                                "@site1": "RR1_PP1_M1_C1",
+                                                "@site2": "RR1_PP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR1_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "kon"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR1_RP1_M1",
+                                            "@targetID": "RR1_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP1_M1_C1",
+                                            "@targetID": "RR1_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP1_M1_C2",
+                                            "@targetID": "RR1_PP1_M1_C2"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP2_M1",
+                                            "@targetID": "RR1_PP1_M2"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP2_M1_C1",
+                                            "@targetID": "RR1_PP1_M2_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "AddBond": {
+                                        "@site1": "RR1_RP1_M1_C1",
+                                        "@site2": "RR1_RP2_M1_C1"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR2",
+                                "@name": "_R2",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR2_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR2_RP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR2_RP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR2_RP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "0",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR2_RP1_M2",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR2_RP1_M2_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR2_RP1_B1",
+                                                "@site1": "RR2_RP1_M1_C1",
+                                                "@site2": "RR2_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": [
+                                        {
+                                            "@id": "RR2_PP1",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR2_PP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR2_PP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR2_PP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "0",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "@id": "RR2_PP2",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR2_PP2_M1",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR2_PP2_M1_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "RateLaw": {
+                                    "@id": "RR2_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "koff"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR2_RP1_M1",
+                                            "@targetID": "RR2_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M1_C1",
+                                            "@targetID": "RR2_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M1_C2",
+                                            "@targetID": "RR2_PP1_M1_C2"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M2",
+                                            "@targetID": "RR2_PP2_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M2_C1",
+                                            "@targetID": "RR2_PP2_M1_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "DeleteBond": {
+                                        "@site1": "RR2_RP1_M1_C1",
+                                        "@site2": "RR2_RP1_M2_C1"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR3",
+                                "@name": "_R3",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR3_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR3_RP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR3_RP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR3_RP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "0",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR3_RP1_M2",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR3_RP1_M2_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR3_RP1_B1",
+                                                "@site1": "RR3_RP1_M1_C1",
+                                                "@site2": "RR3_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": [
+                                        {
+                                            "@id": "RR3_PP1",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR3_PP1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR3_PP1_M1_C1",
+                                                                "@name": "y",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR3_PP1_M1_C2",
+                                                                "@name": "p",
+                                                                "@state": "1",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "@id": "RR3_PP2",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR3_PP2_M1",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR3_PP2_M1_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "RateLaw": {
+                                    "@id": "RR3_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "kcat"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR3_RP1_M1",
+                                            "@targetID": "RR3_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M1_C1",
+                                            "@targetID": "RR3_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M1_C2",
+                                            "@targetID": "RR3_PP1_M1_C2"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M2",
+                                            "@targetID": "RR3_PP2_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M2_C1",
+                                            "@targetID": "RR3_PP2_M1_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "StateChange": {
+                                        "@site": "RR3_RP1_M1_C2",
+                                        "@finalState": "1"
+                                    },
+                                    "DeleteBond": {
+                                        "@site1": "RR3_RP1_M1_C1",
+                                        "@site2": "RR3_RP1_M2_C1"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR4",
+                                "@name": "_R4",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR4_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "RR4_RP1_M1",
+                                                "@name": "X",
+                                                "ListOfComponents": {
+                                                    "Component": {
+                                                        "@id": "RR4_RP1_M1_C1",
+                                                        "@name": "p",
+                                                        "@state": "1",
+                                                        "@numberOfBonds": "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR4_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "RR4_PP1_M1",
+                                                "@name": "X",
+                                                "ListOfComponents": {
+                                                    "Component": {
+                                                        "@id": "RR4_PP1_M1_C1",
+                                                        "@name": "p",
+                                                        "@state": "0",
+                                                        "@numberOfBonds": "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR4_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "dephos"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR4_RP1_M1",
+                                            "@targetID": "RR4_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR4_RP1_M1_C1",
+                                            "@targetID": "RR4_PP1_M1_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "StateChange": {
+                                        "@site": "RR4_RP1_M1_C1",
+                                        "@finalState": "0"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "ListOfObservables": {
+                        "Observable": [
+                            {
+                                "@id": "O1",
+                                "@name": "X_free",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O1_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "O1_P1_M1",
+                                                "@name": "X",
+                                                "ListOfComponents": {
+                                                    "Component": [
+                                                        {
+                                                            "@id": "O1_P1_M1_C1",
+                                                            "@name": "p",
+                                                            "@state": "0",
+                                                            "@numberOfBonds": "0"
+                                                        },
+                                                        {
+                                                            "@id": "O1_P1_M1_C2",
+                                                            "@name": "y",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "O2",
+                                "@name": "X_p_total",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O2_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "O2_P1_M1",
+                                                "@name": "X",
+                                                "ListOfComponents": {
+                                                    "Component": {
+                                                        "@id": "O2_P1_M1_C1",
+                                                        "@name": "p",
+                                                        "@state": "1",
+                                                        "@numberOfBonds": "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "O3",
+                                "@name": "Xp_free",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O3_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "O3_P1_M1",
+                                                "@name": "X",
+                                                "ListOfComponents": {
+                                                    "Component": [
+                                                        {
+                                                            "@id": "O3_P1_M1_C1",
+                                                            "@name": "p",
+                                                            "@state": "1",
+                                                            "@numberOfBonds": "0"
+                                                        },
+                                                        {
+                                                            "@id": "O3_P1_M1_C2",
+                                                            "@name": "y",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "O4",
+                                "@name": "XY",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O4_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "O4_P1_M1",
+                                                    "@name": "X",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "O4_P1_M1_C1",
+                                                            "@name": "y",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "O4_P1_M2",
+                                                    "@name": "Y",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "O4_P1_M2_C1",
+                                                            "@name": "x",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "O4_P1_B1",
+                                                "@site1": "O4_P1_M1_C1",
+                                                "@site2": "O4_P1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "O5",
+                                "@name": "Ytotal",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O5_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "O5_P1_M1",
+                                                "@name": "Y"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "O6",
+                                "@name": "Xtotal",
+                                "@type": "Molecules",
+                                "ListOfPatterns": {
+                                    "Pattern": {
+                                        "@id": "O6_P1",
+                                        "ListOfMolecules": {
+                                            "Molecule": {
+                                                "@id": "O6_P1_M1",
+                                                "@name": "X"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "ListOfFunctions": {
+                        "Function": {
+                            "@id": "f",
+                            "ListOfReferences": null,
+                            "Expression": "10*20"
+                        }
+                    }
+                }
+            }
+        },
+        "svgs": [
+            {
+                "name": "X",
+                "type": "string",
+                "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+            },
+            {
+                "name": "0",
+                "type": "string",
+                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+            },
+            {
+                "name": "1",
+                "type": "string",
+                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+            },
+            {
+                "name": "Y",
+                "type": "string",
+                "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+            }
         ]
-      },
-      {
-        "name": "lsu",
-        "svg_name": "lsu",
-        "components": [
-          {
-            "name": "component1",
-            "pos": [100, 200],
-            "current_state": 0,
-            "component_states": [
-              {
-                "state_id": 0,
-                "name": "cap",
-                "svg_name": "cap2"
-              },
-              {
-                "state_id": 1,
-                "name": "term",
-                "svg_name": "term2"
-              }
-            ]
-          },
-          {
-            "name": "component2",
-            "pos": [1200, 200],
-            "current_state": 1,
-            "component_states": [
-              {
-                "state_id": 0,
-                "name": "cap",
-                "svg_name": "cap2"
-              },
-              {
-                "state_id": 1,
-                "name": "term",
-                "svg_name": "term2"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "svgs": [
-      {
-        "name": "play",
-        "type": "file",
-        "path": "../svgs/play.svg"
-      },
-      {
-        "name": "pause",
-        "type": "file",
-        "path": "../svgs/pause.svg"
-      },
-      {
-        "name": "stop",
-        "type": "file",
-        "path": "../svgs/stop.svg"
-      },
-      {
-        "name": "ssu",
-        "type": "file",
-        "path": "../svgs/ssu.svg"
-      },
-      {
-        "name": "ssu2",
-        "type": "string",
-        "string": "<svg width=\"1000\" height=\"1000\"><rect width=\"2000\" height=\"2000\" style=\"fill:rgb(255,255,0);stroke-width:3;stroke:rgb(255,0,0)\"/></svg>"
-      },
-      {
-        "name": "lsu",
-        "type": "file",
-        "path": "../svgs/lsu.svg"
-      },
-      {
-        "name": "cap",
-        "type": "file",
-        "path": "../svgs/cap.svg"
-      },
-      {
-        "name": "term",
-        "type": "file",
-        "path": "../svgs/termination.svg"
-      },
-      {
-        "name": "term2",
-        "type": "string",
-        "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"red\" /></svg>"
-      },
-      {
-        "name": "cap2",
-        "type": "string",
-        "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
-      },
-      {
-        "name": "term3",
-        "type": "string",
-        "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(255,0,0);stroke-width:3;stroke:rgb(255,0,0)\"/></svg>"
-      },
-      {
-        "name": "cap3",
-        "type": "string",
-        "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
-      }
-    ]
-  }
+    }
 }

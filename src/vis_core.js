@@ -166,11 +166,13 @@ export class System {
     // we now make symbols from each for re-use
     await this.define_symbols();
     // adding actors and associate them with symbols
-    await this.add_actor_definitions(settings["molecule_types"]);
+    await this.add_actor_definitions(settings);
   }
-  async add_actor_definitions(mol_types) {
+  async add_actor_definitions(settings) {
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
     for (let i = 0; i < mol_types.length; i++) {
-      this.actor_definitions[mol_types[i].name] = mol_types[i];
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
     }
   }
   add_actor_from_name(actor_name) {
@@ -182,43 +184,75 @@ export class System {
     actor.set_system(this);
     this.actors[actor.name] = actor;
   }
+  parse_state(state_dict, component) {
+    let name = state_dict["@id"];
+    let state = new ComponentState(
+      name,
+      component,
+      this.symbols[
+        `${state_dict["svg_name"]}`
+      ]
+    );
+    state.set_id(state_dict["state_id"]);
+    return state;
+  }
+  parse_states(states, component) {
+    if (Array.isArray(states)) {
+      for (
+        let j = 0;
+        j < states.length;
+        j++
+      ) {
+        let state = this.parse_state(states[j],component);
+        component.add_state(state);
+      }
+    } else {
+      let state = this.parse_state(states,component);
+      component.add_state(state);
+    }
+  }
+  parse_comp(comp, molecule) {
+    let component = new Component(
+      comp["@id"],
+      molecule,
+      [],
+      0,
+      comp["pos"]
+    );
+    component.set_system(this);
+    // TODO: Check if there are states
+    if ("ListOfAllowedStates" in comp) {
+      let states = comp["ListOfAllowedStates"]["AllowedState"];
+      this.parse_states(states, component);
+    }
+    return component;
+  }
+  parse_comps(comps, molecule) {
+    // TODO: Check if comps is a list or not
+    if (Array.isArray(comps)) {
+      for (let i = 0; i < comps.length; i++) {
+        let component = this.parse_comp(comps[i], molecule);
+        molecule.add_component(component.name, component);
+      }
+    } else {
+      // single component
+      let component = this.parse_comp(comps, molecule);
+      molecule.add_component(component.name, component);
+    }
+  }
   make_actor_from_def(def) {
     let molecule = new Molecule(
-      def["name"],
+      def["@id"],
       this,
       {},
       this.symbols[def["svg_name"]]
     );
-    for (let i = 0; i < def["components"].length; i++) {
-      let component = new Component(
-        def["components"][i]["name"],
-        molecule,
-        [],
-        0,
-        def["components"][i]["pos"]
-      );
-      component.set_system(this);
-      for (
-        let j = 0;
-        j < def["components"][i]["component_states"].length;
-        j++
-      ) {
-        let name = def["components"][i]["component_states"][j]["name"];
-        let state = new ComponentState(
-          name,
-          component,
-          this.symbols[
-            `${def["components"][i]["component_states"][j]["svg_name"]}`
-          ]
-        );
-        state.set_id(def["components"][i]["component_states"][j]["state_id"]);
-        component.add_state(state);
-      }
-      component.set_state(
-        component.states[def["components"][i]["current_state"]]
-      );
-      molecule.add_component(component.name, component);
+    // TODO: Check if there are components
+    if ("ListOfComponentTypes" in def) {
+      let comps = def["ListOfComponentTypes"]['ComponentType'];
+      this.parse_comps(comps, molecule);
     }
+    console.log(molecule);
     return molecule;
   }
   // svgs and related methods
@@ -265,8 +299,8 @@ export class Settings {
     );
     // initialize system from settings
     let vis_settings = settings_json["visualization_settings"];
+    // TODO: figure out an automated way to get suitable height/width
     let w = vis_settings["general"]["width"] ? vis_settings["general"]["width"]:(window.innerWidth*10);
-    // TODO: figure out an automated way to do this
     let h = vis_settings["general"]["height"] ? vis_settings["general"]["height"]:(window.innerHeight*10)-1000;
     //
     let timeline = new SVG.Timeline();

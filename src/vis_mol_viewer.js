@@ -13,8 +13,8 @@ var x = document.getElementById("molec_dropdown");
 for (let i=0;i<Object.keys(sys.actor_definitions).length;i++) {
   let defn = sys.actor_definitions[Object.keys(sys.actor_definitions)[i]];
   var mol_el = document.createElement("button");
-  mol_el.id = `${defn.name}`;
-  mol_el.innerText = `${defn.name}`;
+  mol_el.id = `${defn['@id']}`;
+  mol_el.innerText = `${defn["@id"]}`;
   mol_el.className = "contentbtn";
   // event listener for rendering molecule
   mol_el.addEventListener("click", ()=>{
@@ -24,9 +24,9 @@ for (let i=0;i<Object.keys(sys.actor_definitions).length;i++) {
       console.log(`removing previous render`)
       current_render.remove();
     }
-    console.log(`rendering: ${defn.name}`);
+    console.log(`rendering: ${defn['@id']}`);
     // let's figure out what's going on here
-    let inst = sys.add_actor_from_name(defn.name);
+    let inst = sys.add_actor_from_name(defn['@id']);
     // render
     for (let j = 0;j<Object.keys(inst.components).length;j++) {
       // set default state
