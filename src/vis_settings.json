@@ -46,7 +46,11 @@
                                 "ListOfComponentTypes": {
                                     "ComponentType": [
                                         {
-                                            "@id": "y"
+                                            "@id": "y",
+                                            "pos": [
+                                                0,
+                                                0
+                                            ]
                                         },
                                         {
                                             "@id": "p",
@@ -54,14 +58,20 @@
                                                 "AllowedState": [
                                                     {
                                                         "@id": "0",
-                                                        "svg_name": "0"
+                                                        "svg_name": "0",
+                                                        "state_id": 0
                                                     },
                                                     {
                                                         "@id": "1",
-                                                        "svg_name": "1"
+                                                        "svg_name": "1",
+                                                        "state_id": 1
                                                     }
                                                 ]
-                                            }
+                                            },
+                                            "pos": [
+                                                0,
+                                                0
+                                            ]
                                         }
                                     ]
                                 },
@@ -71,7 +81,11 @@
                                 "@id": "Y",
                                 "ListOfComponentTypes": {
                                     "ComponentType": {
-                                        "@id": "x"
+                                        "@id": "x",
+                                        "pos": [
+                                            0,
+                                            0
+                                        ]
                                     }
                                 },
                                 "svg_name": "Y"

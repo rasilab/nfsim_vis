@@ -30,7 +30,7 @@ for (let i=0;i<Object.keys(sys.actor_definitions).length;i++) {
     // render
     for (let j = 0;j<Object.keys(inst.components).length;j++) {
       // set default state
-      inst.components[Object.keys(inst.components)[i]].set_state_by_id(0);
+      inst.components[Object.keys(inst.components)[j]].set_state_by_id(0);
     }
     let inst_grp = inst.render();
     current_inst = inst;

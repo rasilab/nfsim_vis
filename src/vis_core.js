@@ -220,15 +220,14 @@ export class System {
       comp["pos"]
     );
     component.set_system(this);
-    // TODO: Check if there are states
     if ("ListOfAllowedStates" in comp) {
       let states = comp["ListOfAllowedStates"]["AllowedState"];
       this.parse_states(states, component);
     }
+    component.set_state_by_id(0);
     return component;
   }
   parse_comps(comps, molecule) {
-    // TODO: Check if comps is a list or not
     if (Array.isArray(comps)) {
       for (let i = 0; i < comps.length; i++) {
         let component = this.parse_comp(comps[i], molecule);
@@ -247,12 +246,10 @@ export class System {
       {},
       this.symbols[def["svg_name"]]
     );
-    // TODO: Check if there are components
     if ("ListOfComponentTypes" in def) {
       let comps = def["ListOfComponentTypes"]['ComponentType'];
       this.parse_comps(comps, molecule);
     }
-    console.log(molecule);
     return molecule;
   }
   // svgs and related methods
