@@ -223,6 +223,25 @@ export class System {
     if ("ListOfAllowedStates" in comp) {
       let states = comp["ListOfAllowedStates"]["AllowedState"];
       this.parse_states(states, component);
+    } else {
+      // we have no states but we want a default rep
+      let state_name = `${molecule.name}_${component.name}_0`;
+      let state_svg = "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+      if (!(state_name in this.svgs)) {
+        this.add_svg(state_name, state_svg);
+        if (!(state_name in this.symbols)) {
+          this.define_symbol(state_name);
+        }
+      }
+      let state = new ComponentState(
+        state_name,
+        component,
+        this.symbols[
+          `${state_name}`
+        ]
+      );
+      state.set_id(0);
+      component.add_state(state);
     }
     component.set_state_by_id(0);
     return component;
