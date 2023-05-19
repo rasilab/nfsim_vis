@@ -48,8 +48,8 @@
                                         {
                                             "@id": "y",
                                             "pos": [
-                                                0,
-                                                0
+                                                500,
+                                                500
                                             ]
                                         },
                                         {
@@ -69,8 +69,8 @@
                                                 ]
                                             },
                                             "pos": [
-                                                0,
-                                                0
+                                                100,
+                                                250
                                             ]
                                         }
                                     ]
@@ -848,9 +848,14 @@
         },
         "svgs": [
             {
-                "name": "X",
+                "name": "X1",
                 "type": "string",
                 "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+            },
+            {
+                "name": "X",
+                "type": "file",
+                "path": "../svgs/ssu.svg"
             },
             {
                 "name": "0",
@@ -860,12 +865,17 @@
             {
                 "name": "1",
                 "type": "string",
-                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"red\" /></svg>"
+            },
+            {
+                "name": "Y1",
+                "type": "string",
+                "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
             },
             {
                 "name": "Y",
-                "type": "string",
-                "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+                "type": "file",
+                "path": "../svgs/lsu.svg"
             }
         ]
     }
