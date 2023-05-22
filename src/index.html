@@ -23,7 +23,14 @@
       padding: 10px;
       font-size: 14px;
       border: none;
+      border-bottom: solid black;
       cursor: pointer;
+      display: block;
+      width: 100%;
+    }
+
+    .active {
+      background-color: #585858;
     }
 
     /* Dropdown button on hover & focus */
@@ -59,24 +66,13 @@
       display: none;
       position: absolute;
       background-color: #f1f1f1;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      width: 100%;
       z-index: 1;
     }
 
-    /* Links inside the dropdown */
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-    }
-
-    /* Change color of dropdown links on hover */
-    .dropdown-content a:hover {background-color: #666666;}
-
     /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
     .show {display:block;}
+
   </style>
  </head>
 
@@ -86,6 +82,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.1/dist/svg.min.js"></script>
     <script type="module" src="./vis_core.js"></script>
     <!-- <script type="module" src="./vis_animate.js"></script> -->
+    <script type="module" src="./vis_mol_viewer.js"></script>
     <div class="dropdown">
       <button id="molec_button" class="dropbtn">Molecule types</button>
       <div id="molec_dropdown" class="dropdown-content">
@@ -93,6 +90,5 @@
     </div>
     <div id="compbuttons">
     </div>
-    <script type="module" src="./vis_mol_viewer.js"></script>
   </body>
 </html>
