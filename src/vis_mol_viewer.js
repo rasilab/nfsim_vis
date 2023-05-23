@@ -65,25 +65,11 @@ function initialize_mol(name) {
 
   instances[name] = inst;
   inst.render();
-  let render = instances[name].group;
   
   initial_placement(name);
 
   // make molecule draggable
-  // todo: figure out how to actually capture drag (it's not this)
-  render.on('mousemove', function (event) {
-    let mouse_position = {
-      x: event.clientX,
-      y: event.clientY
-    };
-    // place_render(name, mouse_position, null);
-    // commented out for now because it makes testing other things annoying
-
-    // issues:
-    // - coordinate systems don't match up? or something like that
-    // - why does size change? I guess it's not changing anymore, idk why
-    // - why do some component state renders move away from rest of group?
-  });
+  make_draggable(inst);
 
   // make components clickable
   initialize_component_listeners(inst);
@@ -97,8 +83,25 @@ function initialize_mol(name) {
     instances[name].render();
     console.log(instances[name]);
   });
-  // note - anonymous functions probably not ideal
   */
+}
+
+// todo: figure out why some component state renders move away from rest of group
+function make_draggable(inst) {
+  let render = inst.group;
+  let name = inst.name;
+
+  render.on('mousedown', function () {
+    render.on('mousemove', function (event) {
+      let mouse_position = render.point(event); // convert to correct coordinate system
+      place_render(name, mouse_position, null);
+    });
+  });
+  render.on('mouseup', function () {
+    render.off('mousemove');
+  });
+
+  // maybe having all these anonymous functions is not ideal
 }
 
 function initialize_component_listeners(inst) {
@@ -116,8 +119,9 @@ function next_state(inst, component) {
   return function handle_component_click(event) {
     // todo: switch to next state correctly
 
-    // need to put new things in same positions as old things (assuming full re-render is necessary)
-    // this may not be the best way to do it, also position jumps a bit for some reason
+    // need to put new things in same positions as old things
+    // (assuming full re-render is necessary)
+    // this may not be the best way to do it
     let cx = inst.group.cx();
     let cy = inst.group.cy();
     let size = inst.group.width();
@@ -131,6 +135,7 @@ function next_state(inst, component) {
     // I guess replacing the whole instance would fix this, but idk if that's a great solution
     // the following also fixes this, but idk if I like it either
     initialize_component_listeners(inst);
+    make_draggable(inst);
 
     place_render(inst.name, {x: cx, y: cy}, size);
   }
@@ -139,16 +144,14 @@ function next_state(inst, component) {
 function place_render(name, position, size) {
   let render = instances[name].group;
 
-  if (position != null) {
-    // positioning by center might not be ideal
-    // might depend on how dragging works out
-    render.center(position.x, position.y);
-
-    console.log(position);
-  }
-
   if (size != null) {
     render.size(size);
+  }
+
+  if (position != null) {
+    // positioning by center might not be ideal
+    // dragging isn't smooth if initial click is not centered
+    render.center(position.x, position.y);
   }
 }
 
