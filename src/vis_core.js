@@ -149,6 +149,24 @@ export class ComponentState extends Actor {
 }
 // End: Actor classes
 
+// Begin: Rules and related classes
+export class Rule {
+  constructor(name, reactants, products, rate_law, operations) {
+    this.name = name;
+    this.reactants = reactants;
+    this.products = products;
+    this.rate_law = rate_law;
+    this.operations = operations;
+  }
+}
+export class Operation {
+  constructor(type, dict) {
+    this.type = type;
+    this.dict = dict;
+  }
+}
+// End: Rules
+
 // Main system class
 export class System {
   constructor(canvas, actors, svgs, timeline) {
@@ -159,6 +177,7 @@ export class System {
     this.svgs = svgs;
     this.symbols = {};
     this.instances = [];
+    this.rules = {};
   }
   async initialize(settings) {
     // we need to load in the SVG strings first
@@ -167,6 +186,38 @@ export class System {
     await this.define_symbols();
     // adding actors and associate them with symbols
     await this.add_actor_definitions(settings);
+    // get rules
+    await this.add_rules(settings);
+  }
+  async add_rules(settings) {
+    let model = settings['model']['sbml']['model'];
+    let rules = model['ListOfReactionRules']['ReactionRule'];
+    for (let i = 0; i < rules.length; i++) {
+      this.add_rule(rules[i]);
+    }
+  }
+  add_rule(rule_dict) {
+    let name         = rule_dict["@name"];
+    let reactants    = this.parse_reactants(rule_dict["ListOfReactantPatterns"]["ReactantPattern"]);
+    let products     = this.parse_products(rule_dict["ListOfProductPatterns"]["ProductPattern"]);
+    let ratelaw      = this.parse_ratelaw(rule_dict["RateLaw"]);
+    let ops          = this.parse_ops(rule_dict["ListOfOperations"]);
+    let rule         = Rule(name, reactants, products, ratelaw, ops);
+    this.rules[name] = rule;
+  }
+  parse_reactants(reactants_dict){}
+  parse_products(products_dict){}
+  parse_ratelaw(rate_law_dict){}
+  parse_ops(list_of_ops){
+    ops = [];
+    for (let i = 0;i<Object.keys(list_of_ops).length;i++) {
+      op_type = Object.keys(list_of_ops)[i];
+      op_dict = list_of_ops[op_type];
+      // TODO: Check if these can be lists?
+      op = Operation(op_type, op_dict);
+      ops.push(op);
+    } 
+    return ops;
   }
   async add_actor_definitions(settings) {
     let model = settings['model']['sbml']['model'];
