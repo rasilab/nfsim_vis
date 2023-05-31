@@ -159,10 +159,97 @@ export class Rule {
     this.operations = operations;
   }
 }
-export class Operation {
-  constructor(type, dict) {
-    this.type = type;
+export class Reactants {
+  constructor(dict) {
     this.dict = dict;
+    // console.log("generating reactants");
+    // console.log(dict);
+  }
+}
+export class Products {
+  constructor(dict) {
+    this.dict = dict;
+    // console.log("generating products");
+    // console.log(dict);
+  }
+}
+export class Operation {
+  constructor(type, args) {
+    this.type = type;
+    this.args = args;
+  }
+}
+export class Operations {
+  constructor(dict) {
+    // 
+    this.dict = dict;
+    // read the operation
+    this.operations = [];
+    // List all possible operations & arguments
+    this.ops_types = [
+      "AddBond",
+      "DeleteBond",
+      "ChangeCompartment",
+      "StateChange",
+      "Add",
+      "Delete",
+    ];
+    this.op_args = [
+      "@site1",
+      "@site2",
+      "@id",
+      "@source",
+      "@destination",
+      "@flipOrientation",
+      "@moveConnected",
+      "@site",
+      "@finalState",
+      "@DeleteMolecules",
+    ];
+    // Loop through valid arguments and record
+    for (let i = 0;i<this.ops_types.length;i++) {
+      if (this.ops_types[i] in dict) {
+        // we got an operation, lets get args
+        let args = {};
+        for (let j = 0;j<this.op_args.length;j++) {
+          if (this.op_args[j] in dict[this.ops_types[i]]) {
+            args[this.op_args[j]] = dict[this.ops_types[i]][this.op_args[j]];
+          }
+        }
+        let correct_op = new Operation(this.ops_types[i], args);
+        this.operations.push(correct_op);
+      }
+    }
+  }
+}
+export class RateLaw {
+  constructor(id, dict) {
+    this.id = id;
+    this.dict = dict;
+    this.type = dict['@type'];
+    let rate_cts;
+    if (this.type == "Ele") {
+      rate_cts = dict["ListOfRateConstants"]["RateConstant"]["@value"];
+    } else if (this.type == "Function") {
+      rate_cts = dict["@name"];
+    } else if ((this.type =="MM") || (this.type =="Sat") || (this.type =="Hill") || (this.type =="Arrhenius")) {
+      rate_cts = `${this.type}(`
+      let args = dict["ListOfRateConstants"]["RateConstant"];
+      if (Array.isArray(args)) {
+        for (let i = 0;i<args.length;i++) { 
+          if (i>0) {
+            rate_cts += ",";
+          }
+          rate_cts += args[i]['@value'];
+        }
+      } else {
+        rate_cts += args['@value'];
+      }
+      rate_cts += ")";
+    } else {
+      Error(`Rate law type ${this.type} is not recognized!`);
+    }
+    this.rate_cts = rate_cts;
   }
 }
 // End: Rules
@@ -193,31 +280,38 @@ export class System {
     let model = settings['model']['sbml']['model'];
     let rules = model['ListOfReactionRules']['ReactionRule'];
     for (let i = 0; i < rules.length; i++) {
-      this.add_rule(rules[i]);
+      await this.add_rule(rules[i]);
     }
   }
-  add_rule(rule_dict) {
+  async add_rule(rule_dict) {
     let name         = rule_dict["@name"];
-    let reactants    = this.parse_reactants(rule_dict["ListOfReactantPatterns"]["ReactantPattern"]);
-    let products     = this.parse_products(rule_dict["ListOfProductPatterns"]["ProductPattern"]);
-    let ratelaw      = this.parse_ratelaw(rule_dict["RateLaw"]);
-    let ops          = this.parse_ops(rule_dict["ListOfOperations"]);
-    let rule         = Rule(name, reactants, products, ratelaw, ops);
+    let reactants    = await this.parse_reactants(rule_dict["ListOfReactantPatterns"]["ReactantPattern"]);
+    let products     = await this.parse_products(rule_dict["ListOfProductPatterns"]["ProductPattern"]);
+    let ratelaw      = await this.parse_ratelaw(rule_dict["RateLaw"]);
+    let ops          = await this.parse_ops(rule_dict['ListOfOperations']);
+    let rule         = new Rule(name, reactants, products, ratelaw, ops);
     this.rules[name] = rule;
   }
-  parse_reactants(reactants_dict){}
-  parse_products(products_dict){}
-  parse_ratelaw(rate_law_dict){}
-  parse_ops(list_of_ops){
-    ops = [];
-    for (let i = 0;i<Object.keys(list_of_ops).length;i++) {
-      op_type = Object.keys(list_of_ops)[i];
-      op_dict = list_of_ops[op_type];
-      // TODO: Check if these can be lists?
-      op = Operation(op_type, op_dict);
-      ops.push(op);
-    } 
-    return ops;
+  async parse_reactants(reactants_dict){
+    let reactants = new Reactants(reactants_dict);
+    return reactants;
+  }
+  async parse_products(products_dict){
+    let products = new Products(products_dict);
+    return products;
+  }
+  async parse_ratelaw(rate_law_dict){
+    let id = rate_law_dict['@id'];
+    let ratelaw = new RateLaw(id, rate_law_dict);
+    return ratelaw;
+  }
+  async parse_ops(opt_dict){
+    if (typeof opt_dict !== "undefined") {
+      let ops = new Operations(opt_dict);
+      return ops.operations; 
+    } else {
+      setTimeout(parse_ops, 250);
+    }
   }
   async add_actor_definitions(settings) {
     let model = settings['model']['sbml']['model'];
