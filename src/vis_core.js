@@ -159,18 +159,39 @@ export class Rule {
     this.operations = operations;
   }
 }
-export class Reactants {
-  constructor(dict) {
-    this.dict = dict;
-    // console.log("generating reactants");
-    // console.log(dict);
+export class Pattern {
+  constructor(pat_dict) {
+    console.log(pat_dict);
+    this.dict = pat_dict;
   }
 }
-export class Products {
+export class RxnSide {
   constructor(dict) {
     this.dict = dict;
-    // console.log("generating products");
-    // console.log(dict);
+    this.patterns = [];
+    // check if multiple patterns
+    if(Array.isArray(this.dict)) {
+      for(let i = 0;i<dict.length;i++) {
+        let pat_dict = dict[i];
+        let pattern = new Pattern(pat_dict);
+        this.patterns.push(pattern);
+      }
+    } else {
+      let pattern = new Pattern(this.dict);
+      this.patterns.push(pattern);
+    }
+  }
+}
+export class Reactants extends RxnSide {
+  constructor(dict) {
+    super(dict);
+    this.side_type = "reactants"
+  }
+}
+export class Products extends RxnSide {
+  constructor(dict) {
+    super(dict);
+    this.side_type = "products"
   }
 }
 export class Operation {
