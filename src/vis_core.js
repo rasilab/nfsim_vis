@@ -159,10 +159,136 @@ export class Rule {
     this.operations = operations;
   }
 }
+export class Bonds {
+  constructor(bonds_dict) {
+    this.dict = bonds_dict;
+  }
+}
+export class MoleculePattern {
+  constructor(molec_dict) {
+    this.dict = molec_dict;
+    this.name = null;
+    this.label = null;
+    this.compartment = null;
+    this.components = [];
+  }
+}
+export class ComponentPattern {
+  constructor(comp_dict) {
+    this.dict = comp_dict;
+    this.name = null;
+    this.label = null;
+    this.state = null;
+    this.bonds = [];
+  }
+}
 export class Pattern {
   constructor(pat_dict) {
-    console.log(pat_dict);
     this.dict = pat_dict;
+    this._bonds = new Bonds();
+    this.compartment = null;
+    this.label = null;
+    this.fixed = false;
+    this.matchOnce = false;
+    this.relation = null;
+    this.quantity = null;
+    this.molecules = []
+    this._parse_xml(this.dict);
+  }
+  _parse_xml() {
+    // First get bonds of the pattern
+    if ("ListOfBonds" in this.dict) {
+      this._bonds = new Bonds(this.dict['ListOfBonds']['Bond'])
+    }
+    // Now we get various parameters that apply to the whole
+    // pattern and not just individual molecules
+    if ("@compartment" in this.dict) {
+      this.compartment = this.dict['@compartment']
+    }
+    if ("@label" in this.dict) {
+      this.label = this.dict['@label']
+    }
+    if ("@Fixed" in this.dict) {
+      if (this.dict['@Fixed'] == 1) {
+        this.fixed = true;
+      }
+    }
+    if ("@matchOnce" in this.dict) {
+      if (this.dict['@matchOnce'] == 1) {
+        this.matchOnce = true;
+      }
+    }
+    if (("@relation" in this.dict)&&("@quantity" in this.dict)) {
+      this.relation = this.dict["@relation"];
+      this.quantity = this.dict["@quantity"];
+    }
+    // Now we parse molecules
+    let mols = this.dict['ListOfMolecules']['Molecule'];
+    if (Array.isArray(mols)) {
+      for (let i = 0;i<mols.length;i++) {
+        this.molecules.push(this._parse_mol(mols[i]));
+      }
+    } else {
+      this.molecules.push(this._parse_mol(mols));
+    }
+  }
+  _parse_mol(mol_dict) {
+    let molec = new MoleculePattern(mol_dict);
+    if ("@name" in mol_dict) {
+      molec.name = mol_dict['@name'];
+    }
+    if ("@label" in mol_dict) {
+      molec.label = mol_dict['@label'];
+    }
+    if ("@compartment" in mol_dict) {
+      molec.compartment = mol_dict['@compartment'];
+    }
+    if ("@ListOfComponents" in mol_dict) {
+      molec.components = this._parse_comp(this.dict['ListOfComponents']['Component']);
+    }
+  }
+  _parse_comp(comp_dict) {
+    let comp_list = [];
+    if (Array.isArray(comp_dict)) {
+      for (let i = 0;i<comp_dict.length;i++) {
+        let comp = new ComponentPattern();
+        if ("@name" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if ("@label" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if ("@state" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if (comp_dict[i]['@numberOfBonds']!="0") {
+          let bond_id = this._bonds.get_bond_id(comp_dict[i])
+          for (let i = 0;i<bond_id.length;i++) {
+            comp.bonds.push(bond_id[i])
+          }
+        }
+        comp_list.push(comp);
+      }
+    } else {
+      let comp = new ComponentPattern();
+      if ("@name" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if ("@label" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if ("@state" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if (comp_dict['@numberOfBonds']!="0") {
+        let bond_id = this._bonds.get_bond_id(comp_dict)
+        for (let i = 0;i<bond_id.length;i++) {
+          comp.bonds.push(bond_id[i])
+        }
+      }
+      comp_list.push(comp);
+    }
+    return comp_list;
   }
 }
 export class RxnSide {
