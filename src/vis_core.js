@@ -162,6 +162,59 @@ export class Rule {
 export class Bonds {
   constructor(bonds_dict) {
     this.dict = bonds_dict;
+    this.bonds = {}
+    this._parse_dict();
+  }
+  get_bond_id(comp) {
+    let num_bonds = comp['@numberOfBonds'];
+    let comp_id = comp['@id'];
+    try {
+      let num_bonds = parseInt(num_bonds);
+    } catch (error) {
+      // if we can't convert, it means we have 
+      // something like + or ?, just return
+      return num_bonds;
+    }
+    let bond_id = this.bonds[comp_id];
+    return bond_id;
+  }
+  get_arr_from_id(id_str) {
+    return id_str.split("_");
+  }
+  arrs_from_bond(bond) {
+    let s1 = bond['@site1'];
+    let s2 = bond['@site2'];
+    return [s1,s2];
+  }
+  _parse_dict() {
+    if (Array.isArray(this.dict)) {
+      let j = 0;
+      for (let i = 0;i<this.dict.length;i++) {
+        let bond_arrs = this.arrs_from_bond(this.dict[i])
+        let bond_part_1 = bond_arrs[0];
+        let bond_part_2 = bond_arrs[1];
+        // deal with bond partner 1
+        if (bond_part_1 in this.bonds) {
+          this.bonds[bond_part_1] = [j+1];
+        } else {
+          this.bonds[bond_part_1].push(j+1);
+        }
+        // deal with bond partner 2
+        if (bond_part_2 in this.bonds) {
+          this.bonds[bond_part_2] = [j+1];
+        } else {
+          this.bonds[bond_part_2].push(j+1);
+        }
+        // deal with counter
+        j++;
+      }
+    } else {
+      let bond_arrs = this.arrs_from_bond(this.dict)
+      let bond_part_1 = bond_arrs[0];
+      let bond_part_2 = bond_arrs[1];
+      this.bonds[bond_part_1] = [1];
+      this.bonds[bond_part_2] = [1];
+    }
   }
 }
 export class MoleculePattern {
@@ -185,7 +238,7 @@ export class ComponentPattern {
 export class Pattern {
   constructor(pat_dict) {
     this.dict = pat_dict;
-    this._bonds = new Bonds();
+    this._bonds = null;
     this.compartment = null;
     this.label = null;
     this.fixed = false;
