@@ -296,15 +296,17 @@ export class Pattern {
     if ("@compartment" in mol_dict) {
       molec.compartment = mol_dict['@compartment'];
     }
-    if ("@ListOfComponents" in mol_dict) {
-      molec.components = this._parse_comp(this.dict['ListOfComponents']['Component']);
+    if ("ListOfComponents" in mol_dict) {
+      molec.components = this._parse_comp(mol_dict['ListOfComponents']['Component']);
     }
+    return molec;
   }
   _parse_comp(comp_dict) {
     let comp_list = [];
     if (Array.isArray(comp_dict)) {
       for (let i = 0;i<comp_dict.length;i++) {
         let comp = new ComponentPattern();
+        comp.dict = comp_dict[i];
         if ("@name" in comp_dict[i]) {
           comp.name = comp_dict[i]['@name']
         }
