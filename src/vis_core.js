@@ -154,6 +154,313 @@ export class ComponentState extends Actor {
 }
 // End: Actor classes
 
+// Begin: Rules and related classes
+export class Rule {
+  constructor(name, reactants, products, rate_law, operations) {
+    this.name = name;
+    this.reactants = reactants;
+    this.products = products;
+    this.rate_law = rate_law;
+    this.operations = operations;
+  }
+}
+export class Bonds {
+  constructor(bonds_dict) {
+    this.dict = bonds_dict;
+    this.bonds = {}
+    this._parse_dict();
+  }
+  get_bond_id(comp) {
+    let num_bonds = comp['@numberOfBonds'];
+    let comp_id = comp['@id'];
+    try {
+      let num_bonds = parseInt(num_bonds);
+    } catch (error) {
+      // if we can't convert, it means we have 
+      // something like + or ?, just return
+      return num_bonds;
+    }
+    let bond_id = this.bonds[comp_id];
+    return bond_id;
+  }
+  get_arr_from_id(id_str) {
+    return id_str.split("_");
+  }
+  arrs_from_bond(bond) {
+    let s1 = bond['@site1'];
+    let s2 = bond['@site2'];
+    return [s1,s2];
+  }
+  _parse_dict() {
+    if (Array.isArray(this.dict)) {
+      let j = 0;
+      for (let i = 0;i<this.dict.length;i++) {
+        let bond_arrs = this.arrs_from_bond(this.dict[i])
+        let bond_part_1 = bond_arrs[0];
+        let bond_part_2 = bond_arrs[1];
+        // deal with bond partner 1
+        if (bond_part_1 in this.bonds) {
+          this.bonds[bond_part_1] = [j+1];
+        } else {
+          this.bonds[bond_part_1].push(j+1);
+        }
+        // deal with bond partner 2
+        if (bond_part_2 in this.bonds) {
+          this.bonds[bond_part_2] = [j+1];
+        } else {
+          this.bonds[bond_part_2].push(j+1);
+        }
+        // deal with counter
+        j++;
+      }
+    } else {
+      let bond_arrs = this.arrs_from_bond(this.dict)
+      let bond_part_1 = bond_arrs[0];
+      let bond_part_2 = bond_arrs[1];
+      this.bonds[bond_part_1] = [1];
+      this.bonds[bond_part_2] = [1];
+    }
+  }
+}
+export class MoleculePattern {
+  constructor(molec_dict) {
+    this.dict = molec_dict;
+    this.name = null;
+    this.label = null;
+    this.compartment = null;
+    this.components = [];
+  }
+}
+export class ComponentPattern {
+  constructor(comp_dict) {
+    this.dict = comp_dict;
+    this.name = null;
+    this.label = null;
+    this.state = null;
+    this.bonds = [];
+  }
+}
+export class Pattern {
+  constructor(pat_dict) {
+    this.dict = pat_dict;
+    this._bonds = null;
+    this.compartment = null;
+    this.label = null;
+    this.fixed = false;
+    this.matchOnce = false;
+    this.relation = null;
+    this.quantity = null;
+    this.molecules = []
+    this._parse_xml(this.dict);
+  }
+  _parse_xml() {
+    // First get bonds of the pattern
+    if ("ListOfBonds" in this.dict) {
+      this._bonds = new Bonds(this.dict['ListOfBonds']['Bond'])
+    }
+    // Now we get various parameters that apply to the whole
+    // pattern and not just individual molecules
+    if ("@compartment" in this.dict) {
+      this.compartment = this.dict['@compartment']
+    }
+    if ("@label" in this.dict) {
+      this.label = this.dict['@label']
+    }
+    if ("@Fixed" in this.dict) {
+      if (this.dict['@Fixed'] == 1) {
+        this.fixed = true;
+      }
+    }
+    if ("@matchOnce" in this.dict) {
+      if (this.dict['@matchOnce'] == 1) {
+        this.matchOnce = true;
+      }
+    }
+    if (("@relation" in this.dict)&&("@quantity" in this.dict)) {
+      this.relation = this.dict["@relation"];
+      this.quantity = this.dict["@quantity"];
+    }
+    // Now we parse molecules
+    let mols = this.dict['ListOfMolecules']['Molecule'];
+    if (Array.isArray(mols)) {
+      for (let i = 0;i<mols.length;i++) {
+        this.molecules.push(this._parse_mol(mols[i]));
+      }
+    } else {
+      this.molecules.push(this._parse_mol(mols));
+    }
+  }
+  _parse_mol(mol_dict) {
+    let molec = new MoleculePattern(mol_dict);
+    if ("@name" in mol_dict) {
+      molec.name = mol_dict['@name'];
+    }
+    if ("@label" in mol_dict) {
+      molec.label = mol_dict['@label'];
+    }
+    if ("@compartment" in mol_dict) {
+      molec.compartment = mol_dict['@compartment'];
+    }
+    if ("ListOfComponents" in mol_dict) {
+      molec.components = this._parse_comp(mol_dict['ListOfComponents']['Component']);
+    }
+    return molec;
+  }
+  _parse_comp(comp_dict) {
+    let comp_list = [];
+    if (Array.isArray(comp_dict)) {
+      for (let i = 0;i<comp_dict.length;i++) {
+        let comp = new ComponentPattern();
+        comp.dict = comp_dict[i];
+        if ("@name" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if ("@label" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if ("@state" in comp_dict[i]) {
+          comp.name = comp_dict[i]['@name']
+        }
+        if (comp_dict[i]['@numberOfBonds']!="0") {
+          let bond_id = this._bonds.get_bond_id(comp_dict[i])
+          for (let i = 0;i<bond_id.length;i++) {
+            comp.bonds.push(bond_id[i])
+          }
+        }
+        comp_list.push(comp);
+      }
+    } else {
+      let comp = new ComponentPattern();
+      if ("@name" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if ("@label" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if ("@state" in comp_dict) {
+        comp.name = comp_dict['@name']
+      }
+      if (comp_dict['@numberOfBonds']!="0") {
+        let bond_id = this._bonds.get_bond_id(comp_dict)
+        for (let i = 0;i<bond_id.length;i++) {
+          comp.bonds.push(bond_id[i])
+        }
+      }
+      comp_list.push(comp);
+    }
+    return comp_list;
+  }
+}
+export class RxnSide {
+  constructor(dict) {
+    this.dict = dict;
+    this.patterns = [];
+    // check if multiple patterns
+    if(Array.isArray(this.dict)) {
+      for(let i = 0;i<dict.length;i++) {
+        let pat_dict = dict[i];
+        let pattern = new Pattern(pat_dict);
+        this.patterns.push(pattern);
+      }
+    } else {
+      let pattern = new Pattern(this.dict);
+      this.patterns.push(pattern);
+    }
+  }
+}
+export class Reactants extends RxnSide {
+  constructor(dict) {
+    super(dict);
+    this.side_type = "reactants"
+  }
+}
+export class Products extends RxnSide {
+  constructor(dict) {
+    super(dict);
+    this.side_type = "products"
+  }
+}
+export class Operation {
+  constructor(type, args) {
+    this.type = type;
+    this.args = args;
+  }
+}
+export class Operations {
+  constructor(dict) {
+    // 
+    this.dict = dict;
+    // read the operation
+    this.operations = [];
+    // List all possible operations & arguments
+    this.ops_types = [
+      "AddBond",
+      "DeleteBond",
+      "ChangeCompartment",
+      "StateChange",
+      "Add",
+      "Delete",
+    ];
+    this.op_args = [
+      "@site1",
+      "@site2",
+      "@id",
+      "@source",
+      "@destination",
+      "@flipOrientation",
+      "@moveConnected",
+      "@site",
+      "@finalState",
+      "@DeleteMolecules",
+    ];
+    // Loop through valid arguments and record
+    for (let i = 0;i<this.ops_types.length;i++) {
+      if (this.ops_types[i] in dict) {
+        // we got an operation, lets get args
+        let args = {};
+        for (let j = 0;j<this.op_args.length;j++) {
+          if (this.op_args[j] in dict[this.ops_types[i]]) {
+            args[this.op_args[j]] = dict[this.ops_types[i]][this.op_args[j]];
+          }
+        }
+        let correct_op = new Operation(this.ops_types[i], args);
+        this.operations.push(correct_op);
+      }
+    }
+  }
+}
+export class RateLaw {
+  constructor(id, dict) {
+    this.id = id;
+    this.dict = dict;
+    this.type = dict['@type'];
+    let rate_cts;
+    if (this.type == "Ele") {
+      rate_cts = dict["ListOfRateConstants"]["RateConstant"]["@value"];
+    } else if (this.type == "Function") {
+      rate_cts = dict["@name"];
+    } else if ((this.type =="MM") || (this.type =="Sat") || (this.type =="Hill") || (this.type =="Arrhenius")) {
+      rate_cts = `${this.type}(`
+      let args = dict["ListOfRateConstants"]["RateConstant"];
+      if (Array.isArray(args)) {
+        for (let i = 0;i<args.length;i++) { 
+          if (i>0) {
+            rate_cts += ",";
+          }
+          rate_cts += args[i]['@value'];
+        }
+      } else {
+        rate_cts += args['@value'];
+      }
+      rate_cts += ")";
+    } else {
+      Error(`Rate law type ${this.type} is not recognized!`);
+    }
+    this.rate_cts = rate_cts;
+  }
+}
+// End: Rules
+
 // Main system class
 export class System {
   constructor(canvas, actors, svgs, timeline) {
@@ -164,6 +471,7 @@ export class System {
     this.svgs = svgs;
     this.symbols = {};
     this.instances = [];
+    this.rules = {};
   }
   async initialize(settings) {
     // we need to load in the SVG strings first
@@ -171,11 +479,52 @@ export class System {
     // we now make symbols from each for re-use
     await this.define_symbols();
     // adding actors and associate them with symbols
-    await this.add_actor_definitions(settings["molecule_types"]);
+    await this.add_actor_definitions(settings);
+    // get rules
+    await this.add_rules(settings);
   }
-  async add_actor_definitions(mol_types) {
+  async add_rules(settings) {
+    let model = settings['model']['sbml']['model'];
+    let rules = model['ListOfReactionRules']['ReactionRule'];
+    for (let i = 0; i < rules.length; i++) {
+      await this.add_rule(rules[i]);
+    }
+  }
+  async add_rule(rule_dict) {
+    let name         = rule_dict["@name"];
+    let reactants    = await this.parse_reactants(rule_dict["ListOfReactantPatterns"]["ReactantPattern"]);
+    let products     = await this.parse_products(rule_dict["ListOfProductPatterns"]["ProductPattern"]);
+    let ratelaw      = await this.parse_ratelaw(rule_dict["RateLaw"]);
+    let ops          = await this.parse_ops(rule_dict['ListOfOperations']);
+    let rule         = new Rule(name, reactants, products, ratelaw, ops);
+    this.rules[name] = rule;
+  }
+  async parse_reactants(reactants_dict){
+    let reactants = new Reactants(reactants_dict);
+    return reactants;
+  }
+  async parse_products(products_dict){
+    let products = new Products(products_dict);
+    return products;
+  }
+  async parse_ratelaw(rate_law_dict){
+    let id = rate_law_dict['@id'];
+    let ratelaw = new RateLaw(id, rate_law_dict);
+    return ratelaw;
+  }
+  async parse_ops(opt_dict){
+    if (typeof opt_dict !== "undefined") {
+      let ops = new Operations(opt_dict);
+      return ops.operations; 
+    } else {
+      setTimeout(parse_ops, 250);
+    }
+  }
+  async add_actor_definitions(settings) {
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
     for (let i = 0; i < mol_types.length; i++) {
-      this.actor_definitions[mol_types[i].name] = mol_types[i];
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
     }
   }
   add_actor_from_name(actor_name) {
@@ -187,42 +536,90 @@ export class System {
     actor.set_system(this);
     this.actors[actor.name] = actor;
   }
+  parse_state(state_dict, component) {
+    let name = state_dict["@id"];
+    let state = new ComponentState(
+      name,
+      component,
+      this.symbols[
+        `${state_dict["svg_name"]}`
+      ]
+    );
+    state.set_id(state_dict["state_id"]);
+    return state;
+  }
+  parse_states(states, component) {
+    if (Array.isArray(states)) {
+      for (
+        let j = 0;
+        j < states.length;
+        j++
+      ) {
+        let state = this.parse_state(states[j],component);
+        component.add_state(state);
+      }
+    } else {
+      let state = this.parse_state(states,component);
+      component.add_state(state);
+    }
+  }
+  parse_comp(comp, molecule) {
+    let component = new Component(
+      comp["@id"],
+      molecule,
+      [],
+      0,
+      comp["pos"]
+    );
+    component.set_system(this);
+    if ("ListOfAllowedStates" in comp) {
+      let states = comp["ListOfAllowedStates"]["AllowedState"];
+      this.parse_states(states, component);
+    } else {
+      // we have no states but we want a default rep
+      let state_name = `${molecule.name}_${component.name}_0`;
+      let state_svg = "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+      if (!(state_name in this.svgs)) {
+        this.add_svg(state_name, state_svg);
+        if (!(state_name in this.symbols)) {
+          this.define_symbol(state_name);
+        }
+      }
+      let state = new ComponentState(
+        state_name,
+        component,
+        this.symbols[
+          `${state_name}`
+        ]
+      );
+      state.set_id(0);
+      component.add_state(state);
+    }
+    component.set_state_by_id(0);
+    return component;
+  }
+  parse_comps(comps, molecule) {
+    if (Array.isArray(comps)) {
+      for (let i = 0; i < comps.length; i++) {
+        let component = this.parse_comp(comps[i], molecule);
+        molecule.add_component(component.name, component);
+      }
+    } else {
+      // single component
+      let component = this.parse_comp(comps, molecule);
+      molecule.add_component(component.name, component);
+    }
+  }
   make_actor_from_def(def) {
     let molecule = new Molecule(
-      def["name"],
+      def["@id"],
       this,
       {},
       this.symbols[def["svg_name"]]
     );
-    for (let i = 0; i < def["components"].length; i++) {
-      let component = new Component(
-        def["components"][i]["name"],
-        molecule,
-        [],
-        0,
-        def["components"][i]["pos"]
-      );
-      component.set_system(this);
-      for (
-        let j = 0;
-        j < def["components"][i]["component_states"].length;
-        j++
-      ) {
-        let name = def["components"][i]["component_states"][j]["name"];
-        let state = new ComponentState(
-          name,
-          component,
-          this.symbols[
-            `${def["components"][i]["component_states"][j]["svg_name"]}`
-          ]
-        );
-        state.set_id(def["components"][i]["component_states"][j]["state_id"]);
-        component.add_state(state);
-      }
-      component.set_state(
-        component.states[def["components"][i]["current_state"]]
-      );
-      molecule.add_component(component.name, component);
+    if ("ListOfComponentTypes" in def) {
+      let comps = def["ListOfComponentTypes"]['ComponentType'];
+      this.parse_comps(comps, molecule);
     }
     return molecule;
   }
@@ -270,8 +667,8 @@ export class Settings {
     );
     // initialize system from settings
     let vis_settings = settings_json["visualization_settings"];
+    // TODO: figure out an automated way to get suitable height/width
     let w = vis_settings["general"]["width"] ? vis_settings["general"]["width"]:(window.innerWidth*10);
-    // TODO: figure out an automated way to do this
     let h = vis_settings["general"]["height"] ? vis_settings["general"]["height"]:(window.innerHeight*10)-1000;
     //
     let timeline = new SVG.Timeline();
