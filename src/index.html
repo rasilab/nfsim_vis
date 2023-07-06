@@ -3,7 +3,7 @@
   <style>
     /* Dropdown Button */
     .dropbtn {
-      background-color: #3498DB;
+      background-color: #244556;
       color: white;
       padding: 16px;
       font-size: 16px;
@@ -13,46 +13,32 @@
 
     /* Dropdown button on hover & focus */
     .dropbtn:hover, .dropbtn:focus {
-      background-color: #0c5d0d;
+      background-color: #243347;
     }
 
       /* content Button */
     .contentbtn {
-      background-color: #9fa1a2;
+      background-color: #368F8B;
       color: white;
       padding: 10px;
       font-size: 14px;
       border: none;
-      border-bottom: solid black;
       cursor: pointer;
       display: block;
       width: 100%;
+      /* cut off labels that are too long */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .active {
-      background-color: #585858;
+      background-color: #246A73;
     }
 
     /* Dropdown button on hover & focus */
     .contentbtn:hover, .contentbtn:focus {
-      background-color: #dddddd;
-    }
-
-    /* Dropdown Button */
-    .compbtn {
-      background-color: #3498DB;
-      color: white;
-      padding: 16px;
-      font-size: 16px;
-      border: none;
-      cursor: pointer;
-      margin-left: auto; 
-      margin-right: 0;
-    }
-
-    /* Dropdown button on hover & focus */
-    .compbtn:hover, .dropbtn:focus {
-      background-color: #0c5d0d;
+      background-color: #75AA9D;
     }
 
     /* The container <div> - needed to position the dropdown content */
@@ -68,6 +54,17 @@
       background-color: #f1f1f1;
       width: 100%;
       z-index: 1;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .dropdown-content::-webkit-scrollbar {
+      background: #75AA9D;
+      width: 10;
+    }
+
+    .dropdown-content::-webkit-scrollbar-thumb {
+      background-color: #246A73;
     }
 
     /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
@@ -81,14 +78,13 @@
     <!-- include js script -->
     <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.1/dist/svg.min.js"></script>
     <script type="module" src="./vis_core.js"></script>
-    <!-- <script type="module" src="./vis_animate.js"></script> -->
-    <script type="module" src="./vis_mol_viewer.js"></script>
+    <script type="module" src="./vis_animate.js"></script>
+    <!-- <script type="module" src="./vis_mol_viewer.js"></script>
     <div class="dropdown">
-      <button id="molec_button" class="dropbtn">Molecule types</button>
+      <button id="molec_button" class="dropbtn">Molecule Types</button>
       <div id="molec_dropdown" class="dropdown-content">
       </div>
     </div>
-    <div id="compbuttons">
-    </div>
+    -->
   </body>
 </html>

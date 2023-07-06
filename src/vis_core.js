@@ -142,6 +142,7 @@ export class ComponentState extends Actor {
       // in mol_viewer, click event listeners on current_render are
       // blocked by invisible renders that are in front of current_render
       render_inst.back();
+      render_inst.forward(); // keep molecule as the very first render
     }
     // transform as needed
     return render_inst;

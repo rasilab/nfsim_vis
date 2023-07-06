@@ -1,0 +1,951 @@
+{
+    "visualization_settings": {
+        "general": {
+            "width": null,
+            "height": null
+        },
+        "model": {
+            "sbml": {
+                "@xmlns": "http://www.sbml.org/sbml/level3",
+                "@level": "3",
+                "@version": "1",
+                "model": {
+                    "@id": "v25",
+                    "ListOfParameters": {
+                        "Parameter": [
+                            {
+                                "@id": "l_ribo",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "l_mrna",
+                                "@type": "Constant",
+                                "@value": "10",
+                                "@expr": "10"
+                            },
+                            {
+                                "@id": "k_add",
+                                "@type": "Constant",
+                                "@value": "1.2",
+                                "@expr": "1.2"
+                            },
+                            {
+                                "@id": "k_del",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "k_init",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "k_elong",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "k_term",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "n_mrna_0",
+                                "@type": "Constant",
+                                "@value": "1",
+                                "@expr": "1"
+                            },
+                            {
+                                "@id": "n_ribo_0",
+                                "@type": "Constant",
+                                "@value": "100",
+                                "@expr": "100"
+                            }
+                        ]
+                    },
+                    "ListOfMoleculeTypes": {
+                        "MoleculeType": [
+                            {
+                                "@id": "mrna",
+                                "ListOfComponentTypes": {
+                                    "ComponentType": [
+                                        {
+                                            "@id": "p0",
+                                            "ListOfAllowedStates": {
+                                                "AllowedState": [
+                                                    {
+                                                        "@id": "free",
+                                                        "svg_name": "free",
+                                                        "state_id": 0
+                                                    },
+                                                    {
+                                                        "@id": "blocked",
+                                                        "svg_name": "blocked",
+                                                        "state_id": 1
+                                                    }
+                                                ]
+                                            },
+                                            "pos": [
+                                                0,
+                                                0
+                                            ]
+                                        },
+                                        {
+                                            "@id": "p1",
+                                            "pos": [
+                                                2000,
+                                                0
+                                            ]
+                                        },
+                                        {
+                                            "@id": "p2",
+                                            "pos": [
+                                                4000,
+                                                0
+                                            ]
+                                        },
+                                        {
+                                            "@id": "p3",
+                                            "pos": [
+                                                6000,
+                                                0
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "svg_name": "mrna"
+                            },
+                            {
+                                "@id": "ribosome",
+                                "ListOfComponentTypes": {
+                                    "ComponentType": {
+                                        "@id": "asite",
+                                        "pos": [
+                                            0,
+                                            0
+                                        ]
+                                    }
+                                },
+                                "svg_name": "ribosome"
+                            }
+                        ]
+                    },
+                    "ListOfCompartments": null,
+                    "ListOfSpecies": {
+                        "Species": [
+                            {
+                                "@id": "S1",
+                                "@concentration": "n_mrna_0",
+                                "@name": "mrna(p0~free,p1,p2,p3)",
+                                "ListOfMolecules": {
+                                    "Molecule": {
+                                        "@id": "S1_M1",
+                                        "@name": "mrna",
+                                        "ListOfComponents": {
+                                            "Component": [
+                                                {
+                                                    "@id": "S1_M1_C1",
+                                                    "@name": "p0",
+                                                    "@state": "free",
+                                                    "@numberOfBonds": "0"
+                                                },
+                                                {
+                                                    "@id": "S1_M1_C2",
+                                                    "@name": "p1",
+                                                    "@numberOfBonds": "0"
+                                                },
+                                                {
+                                                    "@id": "S1_M1_C3",
+                                                    "@name": "p2",
+                                                    "@numberOfBonds": "0"
+                                                },
+                                                {
+                                                    "@id": "S1_M1_C4",
+                                                    "@name": "p3",
+                                                    "@numberOfBonds": "0"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "S2",
+                                "@concentration": "n_ribo_0",
+                                "@name": "ribosome(asite)",
+                                "ListOfMolecules": {
+                                    "Molecule": {
+                                        "@id": "S2_M1",
+                                        "@name": "ribosome",
+                                        "ListOfComponents": {
+                                            "Component": {
+                                                "@id": "S2_M1_C1",
+                                                "@name": "asite",
+                                                "@numberOfBonds": "0"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "ListOfReactionRules": {
+                        "ReactionRule": [
+                            {
+                                "@id": "RR1",
+                                "@name": "initiate",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": [
+                                        {
+                                            "@id": "RR1_RP1",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR1_RP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_RP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "@id": "RR1_RP2",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR1_RP2_M1",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_RP2_M1_C1",
+                                                            "@name": "p0",
+                                                            "@state": "free",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR1_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR1_PP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_PP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR1_PP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR1_PP1_M2_C1",
+                                                            "@name": "p0",
+                                                            "@state": "blocked",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR1_PP1_B1",
+                                                "@site1": "RR1_PP1_M1_C1",
+                                                "@site2": "RR1_PP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR1_RateLaw",
+                                    "@type": "Function",
+                                    "@name": "_rateLaw1",
+                                    "@totalrate": "1",
+                                    "ListOfArguments": null
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR1_RP1_M1",
+                                            "@targetID": "RR1_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP1_M1_C1",
+                                            "@targetID": "RR1_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP2_M1",
+                                            "@targetID": "RR1_PP1_M2"
+                                        },
+                                        {
+                                            "@sourceID": "RR1_RP2_M1_C1",
+                                            "@targetID": "RR1_PP1_M2_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "StateChange": {
+                                        "@site": "RR1_RP2_M1_C1",
+                                        "@finalState": "blocked"
+                                    },
+                                    "AddBond": {
+                                        "@site1": "RR1_RP1_M1_C1",
+                                        "@site2": "RR1_RP2_M1_C1"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR2",
+                                "@name": "elongate_1",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR2_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR2_RP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR2_RP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR2_RP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR2_RP1_M2_C1",
+                                                                "@name": "p0",
+                                                                "@state": "blocked",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR2_RP1_M2_C2",
+                                                                "@name": "p1",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR2_RP1_B1",
+                                                "@site1": "RR2_RP1_M1_C1",
+                                                "@site2": "RR2_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR2_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR2_PP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR2_PP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR2_PP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR2_PP1_M2_C1",
+                                                                "@name": "p0",
+                                                                "@state": "free",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR2_PP1_M2_C2",
+                                                                "@name": "p1",
+                                                                "@numberOfBonds": "1"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR2_PP1_B1",
+                                                "@site1": "RR2_PP1_M1_C1",
+                                                "@site2": "RR2_PP1_M2_C2"
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR2_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "k_elong"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR2_RP1_M1",
+                                            "@targetID": "RR2_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M1_C1",
+                                            "@targetID": "RR2_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M2",
+                                            "@targetID": "RR2_PP1_M2"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M2_C1",
+                                            "@targetID": "RR2_PP1_M2_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR2_RP1_M2_C2",
+                                            "@targetID": "RR2_PP1_M2_C2"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "StateChange": {
+                                        "@site": "RR2_RP1_M2_C1",
+                                        "@finalState": "free"
+                                    },
+                                    "DeleteBond": {
+                                        "@site1": "RR2_RP1_M1_C1",
+                                        "@site2": "RR2_RP1_M2_C1",
+                                        "@ensureConnected": "1"
+                                    },
+                                    "AddBond": {
+                                        "@site1": "RR2_RP1_M1_C1",
+                                        "@site2": "RR2_RP1_M2_C2"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR3",
+                                "@name": "elongate_2",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR3_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR3_RP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR3_RP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR3_RP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR3_RP1_M2_C1",
+                                                                "@name": "p1",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR3_RP1_M2_C2",
+                                                                "@name": "p2",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR3_RP1_B1",
+                                                "@site1": "RR3_RP1_M1_C1",
+                                                "@site2": "RR3_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR3_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR3_PP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR3_PP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR3_PP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR3_PP1_M2_C1",
+                                                                "@name": "p1",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR3_PP1_M2_C2",
+                                                                "@name": "p2",
+                                                                "@numberOfBonds": "1"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR3_PP1_B1",
+                                                "@site1": "RR3_PP1_M1_C1",
+                                                "@site2": "RR3_PP1_M2_C2"
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR3_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "k_elong"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR3_RP1_M1",
+                                            "@targetID": "RR3_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M1_C1",
+                                            "@targetID": "RR3_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M2",
+                                            "@targetID": "RR3_PP1_M2"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M2_C1",
+                                            "@targetID": "RR3_PP1_M2_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR3_RP1_M2_C2",
+                                            "@targetID": "RR3_PP1_M2_C2"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "DeleteBond": {
+                                        "@site1": "RR3_RP1_M1_C1",
+                                        "@site2": "RR3_RP1_M2_C1",
+                                        "@ensureConnected": "1"
+                                    },
+                                    "AddBond": {
+                                        "@site1": "RR3_RP1_M1_C1",
+                                        "@site2": "RR3_RP1_M2_C2"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR4",
+                                "@name": "elongate_3",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR4_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR4_RP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR4_RP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR4_RP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR4_RP1_M2_C1",
+                                                                "@name": "p2",
+                                                                "@numberOfBonds": "1"
+                                                            },
+                                                            {
+                                                                "@id": "RR4_RP1_M2_C2",
+                                                                "@name": "p3",
+                                                                "@numberOfBonds": "0"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR4_RP1_B1",
+                                                "@site1": "RR4_RP1_M1_C1",
+                                                "@site2": "RR4_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": {
+                                        "@id": "RR4_PP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR4_PP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR4_PP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR4_PP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": [
+                                                            {
+                                                                "@id": "RR4_PP1_M2_C1",
+                                                                "@name": "p2",
+                                                                "@numberOfBonds": "0"
+                                                            },
+                                                            {
+                                                                "@id": "RR4_PP1_M2_C2",
+                                                                "@name": "p3",
+                                                                "@numberOfBonds": "1"
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR4_PP1_B1",
+                                                "@site1": "RR4_PP1_M1_C1",
+                                                "@site2": "RR4_PP1_M2_C2"
+                                            }
+                                        }
+                                    }
+                                },
+                                "RateLaw": {
+                                    "@id": "RR4_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "k_elong"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR4_RP1_M1",
+                                            "@targetID": "RR4_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR4_RP1_M1_C1",
+                                            "@targetID": "RR4_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR4_RP1_M2",
+                                            "@targetID": "RR4_PP1_M2"
+                                        },
+                                        {
+                                            "@sourceID": "RR4_RP1_M2_C1",
+                                            "@targetID": "RR4_PP1_M2_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR4_RP1_M2_C2",
+                                            "@targetID": "RR4_PP1_M2_C2"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "DeleteBond": {
+                                        "@site1": "RR4_RP1_M1_C1",
+                                        "@site2": "RR4_RP1_M2_C1",
+                                        "@ensureConnected": "1"
+                                    },
+                                    "AddBond": {
+                                        "@site1": "RR4_RP1_M1_C1",
+                                        "@site2": "RR4_RP1_M2_C2"
+                                    }
+                                }
+                            },
+                            {
+                                "@id": "RR5",
+                                "@name": "terminate",
+                                "@symmetry_factor": "1",
+                                "ListOfReactantPatterns": {
+                                    "ReactantPattern": {
+                                        "@id": "RR5_RP1",
+                                        "ListOfMolecules": {
+                                            "Molecule": [
+                                                {
+                                                    "@id": "RR5_RP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR5_RP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "@id": "RR5_RP1_M2",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR5_RP1_M2_C1",
+                                                            "@name": "p3",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "ListOfBonds": {
+                                            "Bond": {
+                                                "@id": "RR5_RP1_B1",
+                                                "@site1": "RR5_RP1_M1_C1",
+                                                "@site2": "RR5_RP1_M2_C1"
+                                            }
+                                        }
+                                    }
+                                },
+                                "ListOfProductPatterns": {
+                                    "ProductPattern": [
+                                        {
+                                            "@id": "RR5_PP1",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR5_PP1_M1",
+                                                    "@name": "ribosome",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR5_PP1_M1_C1",
+                                                            "@name": "asite",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "@id": "RR5_PP2",
+                                            "ListOfMolecules": {
+                                                "Molecule": {
+                                                    "@id": "RR5_PP2_M1",
+                                                    "@name": "mrna",
+                                                    "ListOfComponents": {
+                                                        "Component": {
+                                                            "@id": "RR5_PP2_M1_C1",
+                                                            "@name": "p3",
+                                                            "@numberOfBonds": "0"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                "RateLaw": {
+                                    "@id": "RR5_RateLaw",
+                                    "@type": "Ele",
+                                    "@totalrate": "0",
+                                    "ListOfRateConstants": {
+                                        "RateConstant": {
+                                            "@value": "k_term"
+                                        }
+                                    }
+                                },
+                                "Map": {
+                                    "MapItem": [
+                                        {
+                                            "@sourceID": "RR5_RP1_M1",
+                                            "@targetID": "RR5_PP1_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR5_RP1_M1_C1",
+                                            "@targetID": "RR5_PP1_M1_C1"
+                                        },
+                                        {
+                                            "@sourceID": "RR5_RP1_M2",
+                                            "@targetID": "RR5_PP2_M1"
+                                        },
+                                        {
+                                            "@sourceID": "RR5_RP1_M2_C1",
+                                            "@targetID": "RR5_PP2_M1_C1"
+                                        }
+                                    ]
+                                },
+                                "ListOfOperations": {
+                                    "DeleteBond": {
+                                        "@site1": "RR5_RP1_M1_C1",
+                                        "@site2": "RR5_RP1_M2_C1"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "ListOfObservables": {
+                        "Observable": {
+                            "@id": "O1",
+                            "@name": "rib_elong",
+                            "@type": "Molecules",
+                            "ListOfPatterns": {
+                                "Pattern": {
+                                    "@id": "O1_P1",
+                                    "ListOfMolecules": {
+                                        "Molecule": [
+                                            {
+                                                "@id": "O1_P1_M1",
+                                                "@name": "ribosome",
+                                                "ListOfComponents": {
+                                                    "Component": {
+                                                        "@id": "O1_P1_M1_C1",
+                                                        "@name": "asite",
+                                                        "@numberOfBonds": "1"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "@id": "O1_P1_M2",
+                                                "@name": "mrna",
+                                                "ListOfComponents": {
+                                                    "Component": [
+                                                        {
+                                                            "@id": "O1_P1_M2_C1",
+                                                            "@name": "p1",
+                                                            "@numberOfBonds": "0"
+                                                        },
+                                                        {
+                                                            "@id": "O1_P1_M2_C2",
+                                                            "@name": "p2",
+                                                            "@numberOfBonds": "1"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "ListOfBonds": {
+                                        "Bond": {
+                                            "@id": "O1_P1_B1",
+                                            "@site1": "O1_P1_M1_C1",
+                                            "@site2": "O1_P1_M2_C2"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "ListOfFunctions": {
+                        "Function": {
+                            "@id": "_rateLaw1",
+                            "ListOfReferences": {
+                                "Reference": {
+                                    "@name": "k_init",
+                                    "@type": "Constant"
+                                }
+                            },
+                            "Expression": "k_init"
+                        }
+                    }
+                }
+            }
+        },
+        "svgs": [
+            {
+                "name": "mrna",
+                "type": "string",
+                "string": "<svg width=\"6000\" height=\"100\"><rect width=\"6000\" height=\"100\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+            },
+            {
+                "name": "free",
+                "type": "string",
+                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"blue\" stroke-width=\"3\" fill=\"blue\" /></svg>"
+            },
+            {
+                "name": "blocked",
+                "type": "string",
+                "string": "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"red\" stroke-width=\"3\" fill=\"red\" /></svg>"
+            },
+            {
+                "name": "ribosome",
+                "type": "string",
+                "string": "<svg width=\"200\" height=\"200\"><rect width=\"200\" height=\"200\" style=\"fill:rgb(0,0,0);stroke-width:3;stroke:rgb(0,0,0)\"/></svg>"
+            }
+        ]
+    }
+}
