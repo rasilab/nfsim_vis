@@ -150,6 +150,21 @@ for (const firing of firings) {
 
         // probably need to remove render and generate a new one
         // how to schedule this kind of update?
+        // alternatively, can try to do this just by animating opacity changes
+        // - would have to call .animate on state renders directly rather than going
+        // through the .animator thing, not exactly sure how/if this would work
+        // - also, I suspect this can only work if each state keeps track of its render
+        for (const state of component.states) {
+          if (state.id == comp_state_index) {
+            // schedule animation on state render to set its opacity to 1
+          } else {
+            // schedule animation on state render to set its opacity to 0
+          }
+        }
+        // to avoid this loop, could maybe..
+        // - get component.current_render and schedule an animation on it (opacity 0)
+        // - use component.set_state_by_id(comp_state_index) to update current state info
+        // - ??? all the same issues come up here
         break;
 
       // AddBond is used as the representative operation for initiate, elongate
