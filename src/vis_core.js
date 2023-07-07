@@ -49,7 +49,8 @@ export class Molecule extends Actor {
     this.animator = null;
   }
   add_component(name, component) {
-    component.set_system(this.system);
+    // component.set_system(this.system);
+    // there's something weird about how systems are set
     this.components[name] = component;
   }
   render() {
@@ -158,6 +159,11 @@ export class ComponentState extends Actor {
     let render_inst = this.parent.parent.group.use(this.symbol);
     if (!visible) { 
       render_inst.opacity(0.0);
+
+      // in mol_viewer, click event listeners on current_render are
+      // blocked by invisible renders that are in front of current_render
+      render_inst.back();
+      render_inst.forward(); // keep molecule as the very first render
     }
     // transform as needed
     return render_inst;
