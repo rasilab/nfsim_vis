@@ -18,6 +18,27 @@ export class Actor {
     Error("Not implemented for template class");
   }
 }
+export class MoleculeType {
+  constructor(mtype_dict, events_bool) {
+    this.dict = mtype_dict;
+    this.events = events_bool;
+    this.initialize();
+  }
+  initialize() {
+    // we can either have molecule types from events
+    // or from the model itself if events are missing
+    if (this.events) {
+      // events file given
+    } else {
+      // no events file given, using model
+    }
+  }
+  instantiate_molecule() {
+    // this will be used to instantiate a single
+    // instance of the molecule
+    return
+  }
+}
 
 export class Molecule extends Actor {
   constructor(name, parent, components, symbol) {
@@ -651,8 +672,9 @@ export class System {
 
 // Main settings class for parsing a setting file
 export class Settings {
-  constructor(setting_file) {
+  constructor(setting_file, event_file) {
     this.setting_file = setting_file;
+    this.event_file = event_file;
     this.system = null;
   }
   async parse_settings_file() {
@@ -677,5 +699,45 @@ export class Settings {
     // return initialized system
     console.log("--System intialized--");
     this.system = sys;
+  }
+  async parse_event_file() {
+    // check if an event file is given
+    if (this.event_file == null) { 
+      return false;
+    }
+    // fetch settings JSON
+    let event_json = await fetch(this.event_file).then((event) =>
+      event.json()
+    );
+    // store simulation info
+    this.sim_info = event_json['info'];
+    // setup molecule types
+    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['molecule_types']);
+    // get the initial state map
+    this.initial_state_dict = event_json['initialState'];
+    // store events
+    this.events = event_json['firings'];
+    // inform that events are initialized
+    console.log("--Events intialized--");
+  }
+  async get_nf_molecule_types(mtype_json) {
+    let nf_mtypes = {};
+    for (let i = 0;i<mtype_json.length;i++) {
+      nf_mtypes[mtype_json[i]['name']] = mtype_json[i];
+    }
+    return nf_mtypes;
+  }
+  async get_initial_state() {
+    // we use the finalized molecule types to initialize 
+    // the model state fully
+  }
+  async get_molecule_types() {
+    // we use both event file and model if possible
+  }
+  async initialize() {
+    await this.parse_event_file();
+    await this.get_complete_molecule_types();
+    await this.get_initial_state();
+    await this.parse_settings_file();
   }
 }

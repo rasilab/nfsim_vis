@@ -1,0 +1,1247 @@
+{
+  "simulation": {
+    "info": {
+      "name": "v25",
+      "global_molecule_limit": 10000000,
+      "number_of_molecule_types": 2,
+      "number_of_molecules": 101
+    },
+    "molecule_types": [
+      {
+        "name": "mrna",
+        "typeID": 0,
+        "components": ["p0","p1","p2","p3"],
+        "componentStates": [["free","blocked"],[],[],[]]
+      },
+      {
+        "name": "ribosome",
+        "typeID": 1,
+        "components": ["asite"],
+        "componentStates": [[]]
+      }
+    ],
+    "initialState": {
+      "molecule_array": [
+        [0,1],
+        [-1,1],
+        [1,100]
+      ],
+      "ops": [
+      ]
+    },
+    "firings": [
+      {
+        "props": ["initiate",1,1.968422],
+        "ops": [
+          ["AddBond",45,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",2,3.601073],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",45,0,0,0],
+          ["AddBond",45,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",3,4.174111],
+        "ops": [
+          ["DeleteBond",45,0,0,1],
+          ["AddBond",45,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",4,4.551868],
+        "ops": [
+          ["DeleteBond",45,0,0,2],
+          ["AddBond",45,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",5,4.892019],
+        "ops": [
+          ["AddBond",20,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",6,6.164410],
+        "ops": [
+          ["DeleteBond",45,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",7,8.367337],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",20,0,0,0],
+          ["AddBond",20,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",8,8.706512],
+        "ops": [
+          ["DeleteBond",20,0,0,1],
+          ["AddBond",20,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",9,9.173869],
+        "ops": [
+          ["DeleteBond",20,0,0,2],
+          ["AddBond",20,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",10,9.444094],
+        "ops": [
+          ["AddBond",25,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",11,9.777647],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",25,0,0,0],
+          ["AddBond",25,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",12,10.772046],
+        "ops": [
+          ["AddBond",30,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",13,11.047073],
+        "ops": [
+          ["DeleteBond",25,0,0,1],
+          ["AddBond",25,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",14,11.058984],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",30,0,0,0],
+          ["AddBond",30,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",15,11.307005],
+        "ops": [
+          ["AddBond",98,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",16,14.932430],
+        "ops": [
+          ["DeleteBond",20,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",17,15.113066],
+        "ops": [
+          ["DeleteBond",25,0,0,2],
+          ["AddBond",25,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",18,15.266741],
+        "ops": [
+          ["DeleteBond",30,0,0,1],
+          ["AddBond",30,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",19,16.465988],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",98,0,0,0],
+          ["AddBond",98,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",20,16.593554],
+        "ops": [
+          ["AddBond",73,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",21,16.862355],
+        "ops": [
+          ["DeleteBond",25,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",22,19.418594],
+        "ops": [
+          ["DeleteBond",30,0,0,2],
+          ["AddBond",30,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",23,19.934594],
+        "ops": [
+          ["DeleteBond",30,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",24,20.310868],
+        "ops": [
+          ["DeleteBond",98,0,0,1],
+          ["AddBond",98,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",25,21.206024],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",73,0,0,0],
+          ["AddBond",73,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",26,21.396362],
+        "ops": [
+          ["AddBond",92,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",27,21.971012],
+        "ops": [
+          ["DeleteBond",98,0,0,2],
+          ["AddBond",98,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",28,22.725178],
+        "ops": [
+          ["DeleteBond",98,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",29,24.384879],
+        "ops": [
+          ["DeleteBond",73,0,0,1],
+          ["AddBond",73,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",30,26.116615],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",92,0,0,0],
+          ["AddBond",92,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",31,26.276009],
+        "ops": [
+          ["DeleteBond",73,0,0,2],
+          ["AddBond",73,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",32,26.857906],
+        "ops": [
+          ["DeleteBond",92,0,0,1],
+          ["AddBond",92,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",33,27.534246],
+        "ops": [
+          ["DeleteBond",73,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",34,27.550190],
+        "ops": [
+          ["DeleteBond",92,0,0,2],
+          ["AddBond",92,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",35,28.190046],
+        "ops": [
+          ["AddBond",76,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",36,28.679883],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",76,0,0,0],
+          ["AddBond",76,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",37,28.709182],
+        "ops": [
+          ["DeleteBond",92,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",38,28.956901],
+        "ops": [
+          ["AddBond",46,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",39,30.793931],
+        "ops": [
+          ["DeleteBond",76,0,0,1],
+          ["AddBond",76,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",40,31.388224],
+        "ops": [
+          ["DeleteBond",76,0,0,2],
+          ["AddBond",76,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",41,31.435399],
+        "ops": [
+          ["DeleteBond",76,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",42,33.059430],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",46,0,0,0],
+          ["AddBond",46,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",43,33.479424],
+        "ops": [
+          ["AddBond",72,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",44,34.074162],
+        "ops": [
+          ["DeleteBond",46,0,0,1],
+          ["AddBond",46,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",45,34.252263],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",72,0,0,0],
+          ["AddBond",72,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",46,34.323731],
+        "ops": [
+          ["DeleteBond",46,0,0,2],
+          ["AddBond",46,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",47,34.345522],
+        "ops": [
+          ["AddBond",19,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",48,34.752685],
+        "ops": [
+          ["DeleteBond",46,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",49,39.043320],
+        "ops": [
+          ["DeleteBond",72,0,0,1],
+          ["AddBond",72,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",50,39.101880],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",19,0,0,0],
+          ["AddBond",19,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",51,39.174232],
+        "ops": [
+          ["AddBond",76,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",52,39.344965],
+        "ops": [
+          ["DeleteBond",72,0,0,2],
+          ["AddBond",72,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",53,39.417813],
+        "ops": [
+          ["DeleteBond",72,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",54,40.906186],
+        "ops": [
+          ["DeleteBond",19,0,0,1],
+          ["AddBond",19,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",55,40.964516],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",76,0,0,0],
+          ["AddBond",76,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",56,41.117882],
+        "ops": [
+          ["DeleteBond",19,0,0,2],
+          ["AddBond",19,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",57,41.527442],
+        "ops": [
+          ["AddBond",38,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",58,41.552470],
+        "ops": [
+          ["DeleteBond",19,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",59,41.741788],
+        "ops": [
+          ["DeleteBond",76,0,0,1],
+          ["AddBond",76,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",60,41.769144],
+        "ops": [
+          ["DeleteBond",76,0,0,2],
+          ["AddBond",76,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",61,42.592321],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",38,0,0,0],
+          ["AddBond",38,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",62,43.028983],
+        "ops": [
+          ["AddBond",28,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",63,43.057684],
+        "ops": [
+          ["DeleteBond",38,0,0,1],
+          ["AddBond",38,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",64,43.365889],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",28,0,0,0],
+          ["AddBond",28,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",65,43.587172],
+        "ops": [
+          ["DeleteBond",76,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",66,44.569344],
+        "ops": [
+          ["AddBond",32,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",67,44.572234],
+        "ops": [
+          ["DeleteBond",38,0,0,2],
+          ["AddBond",38,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",68,44.574520],
+        "ops": [
+          ["DeleteBond",28,0,0,1],
+          ["AddBond",28,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",69,45.380529],
+        "ops": [
+          ["DeleteBond",38,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",70,45.706050],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",32,0,0,0],
+          ["AddBond",32,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",71,46.068600],
+        "ops": [
+          ["AddBond",17,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",72,46.123575],
+        "ops": [
+          ["DeleteBond",28,0,0,2],
+          ["AddBond",28,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",73,46.206527],
+        "ops": [
+          ["DeleteBond",32,0,0,1],
+          ["AddBond",32,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",74,46.316766],
+        "ops": [
+          ["DeleteBond",28,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",75,46.363094],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",17,0,0,0],
+          ["AddBond",17,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",76,46.408413],
+        "ops": [
+          ["AddBond",78,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",77,49.472905],
+        "ops": [
+          ["DeleteBond",32,0,0,2],
+          ["AddBond",32,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",78,49.846605],
+        "ops": [
+          ["DeleteBond",32,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",79,50.142042],
+        "ops": [
+          ["DeleteBond",17,0,0,1],
+          ["AddBond",17,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",80,50.835901],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",78,0,0,0],
+          ["AddBond",78,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",81,52.308940],
+        "ops": [
+          ["DeleteBond",17,0,0,2],
+          ["AddBond",17,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",82,52.312404],
+        "ops": [
+          ["DeleteBond",17,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",83,52.569596],
+        "ops": [
+          ["DeleteBond",78,0,0,1],
+          ["AddBond",78,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",84,52.688873],
+        "ops": [
+          ["DeleteBond",78,0,0,2],
+          ["AddBond",78,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",85,52.811925],
+        "ops": [
+          ["AddBond",8,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",86,53.269124],
+        "ops": [
+          ["DeleteBond",78,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",87,53.443538],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",8,0,0,0],
+          ["AddBond",8,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",88,53.660418],
+        "ops": [
+          ["DeleteBond",8,0,0,1],
+          ["AddBond",8,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",89,54.716871],
+        "ops": [
+          ["DeleteBond",8,0,0,2],
+          ["AddBond",8,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",90,55.258048],
+        "ops": [
+          ["AddBond",45,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",91,56.154996],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",45,0,0,0],
+          ["AddBond",45,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",92,56.723698],
+        "ops": [
+          ["AddBond",4,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",93,56.891038],
+        "ops": [
+          ["DeleteBond",8,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",94,58.563885],
+        "ops": [
+          ["DeleteBond",45,0,0,1],
+          ["AddBond",45,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",95,58.909278],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",4,0,0,0],
+          ["AddBond",4,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",96,59.123985],
+        "ops": [
+          ["DeleteBond",45,0,0,2],
+          ["AddBond",45,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",97,59.269017],
+        "ops": [
+          ["DeleteBond",4,0,0,1],
+          ["AddBond",4,0,0,2]
+        ]
+      },
+      {
+        "props": ["initiate",98,59.360751],
+        "ops": [
+          ["AddBond",60,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",99,60.025310],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",60,0,0,0],
+          ["AddBond",60,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",100,60.264525],
+        "ops": [
+          ["DeleteBond",45,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",101,60.982242],
+        "ops": [
+          ["DeleteBond",4,0,0,2],
+          ["AddBond",4,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",102,61.353056],
+        "ops": [
+          ["DeleteBond",60,0,0,1],
+          ["AddBond",60,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",103,61.804716],
+        "ops": [
+          ["DeleteBond",4,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",104,61.815122],
+        "ops": [
+          ["DeleteBond",60,0,0,2],
+          ["AddBond",60,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",105,62.979959],
+        "ops": [
+          ["DeleteBond",60,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",106,65.055296],
+        "ops": [
+          ["AddBond",38,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",107,65.604542],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",38,0,0,0],
+          ["AddBond",38,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",108,66.030311],
+        "ops": [
+          ["AddBond",64,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",109,66.095482],
+        "ops": [
+          ["DeleteBond",38,0,0,1],
+          ["AddBond",38,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",110,66.660194],
+        "ops": [
+          ["DeleteBond",38,0,0,2],
+          ["AddBond",38,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",111,66.816560],
+        "ops": [
+          ["DeleteBond",38,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",112,67.197065],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",64,0,0,0],
+          ["AddBond",64,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",113,67.432233],
+        "ops": [
+          ["AddBond",2,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",114,70.381814],
+        "ops": [
+          ["DeleteBond",64,0,0,1],
+          ["AddBond",64,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",115,71.013144],
+        "ops": [
+          ["DeleteBond",64,0,0,2],
+          ["AddBond",64,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",116,71.235931],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",2,0,0,0],
+          ["AddBond",2,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",117,71.998269],
+        "ops": [
+          ["DeleteBond",64,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",118,72.270459],
+        "ops": [
+          ["DeleteBond",2,0,0,1],
+          ["AddBond",2,0,0,2]
+        ]
+      },
+      {
+        "props": ["initiate",119,72.559524],
+        "ops": [
+          ["AddBond",55,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",120,72.597419],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",55,0,0,0],
+          ["AddBond",55,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",121,72.647637],
+        "ops": [
+          ["AddBond",88,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",122,73.908532],
+        "ops": [
+          ["DeleteBond",2,0,0,2],
+          ["AddBond",2,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",123,75.282748],
+        "ops": [
+          ["DeleteBond",2,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",124,75.509138],
+        "ops": [
+          ["DeleteBond",55,0,0,1],
+          ["AddBond",55,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",125,75.623314],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",88,0,0,0],
+          ["AddBond",88,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",126,75.921145],
+        "ops": [
+          ["AddBond",21,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",127,79.050410],
+        "ops": [
+          ["DeleteBond",55,0,0,2],
+          ["AddBond",55,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",128,79.782425],
+        "ops": [
+          ["DeleteBond",88,0,0,1],
+          ["AddBond",88,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",129,80.050432],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",21,0,0,0],
+          ["AddBond",21,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",130,80.785220],
+        "ops": [
+          ["AddBond",34,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",131,81.569923],
+        "ops": [
+          ["DeleteBond",55,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_3",132,81.598114],
+        "ops": [
+          ["DeleteBond",88,0,0,2],
+          ["AddBond",88,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",133,81.718872],
+        "ops": [
+          ["DeleteBond",88,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",134,82.520042],
+        "ops": [
+          ["DeleteBond",21,0,0,1],
+          ["AddBond",21,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",135,82.674933],
+        "ops": [
+          ["DeleteBond",21,0,0,2],
+          ["AddBond",21,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",136,83.094405],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",34,0,0,0],
+          ["AddBond",34,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",137,83.299283],
+        "ops": [
+          ["AddBond",88,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",138,83.431382],
+        "ops": [
+          ["DeleteBond",34,0,0,1],
+          ["AddBond",34,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",139,84.046454],
+        "ops": [
+          ["DeleteBond",21,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",140,84.354194],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",88,0,0,0],
+          ["AddBond",88,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",141,84.890507],
+        "ops": [
+          ["AddBond",62,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",142,85.730274],
+        "ops": [
+          ["DeleteBond",34,0,0,2],
+          ["AddBond",34,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",143,86.111687],
+        "ops": [
+          ["DeleteBond",34,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",144,86.145229],
+        "ops": [
+          ["DeleteBond",88,0,0,1],
+          ["AddBond",88,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",145,86.184791],
+        "ops": [
+          ["DeleteBond",88,0,0,2],
+          ["AddBond",88,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",146,86.768578],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",62,0,0,0],
+          ["AddBond",62,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",147,86.821987],
+        "ops": [
+          ["DeleteBond",88,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",148,87.343678],
+        "ops": [
+          ["DeleteBond",62,0,0,1],
+          ["AddBond",62,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",149,88.071032],
+        "ops": [
+          ["DeleteBond",62,0,0,2],
+          ["AddBond",62,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",150,88.156079],
+        "ops": [
+          ["AddBond",97,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_1",151,88.871145],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",97,0,0,0],
+          ["AddBond",97,0,0,1]
+        ]
+      },
+      {
+        "props": ["initiate",152,89.359270],
+        "ops": [
+          ["AddBond",72,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",153,90.850765],
+        "ops": [
+          ["DeleteBond",97,0,0,1],
+          ["AddBond",97,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",154,91.096787],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",72,0,0,0],
+          ["AddBond",72,0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",155,91.209444],
+        "ops": [
+          ["DeleteBond",62,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",156,91.364254],
+        "ops": [
+          ["AddBond",77,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",157,91.900577],
+        "ops": [
+          ["DeleteBond",97,0,0,2],
+          ["AddBond",97,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",158,92.336368],
+        "ops": [
+          ["DeleteBond",97,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",159,92.969434],
+        "ops": [
+          ["DeleteBond",72,0,0,1],
+          ["AddBond",72,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",160,93.235456],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",77,0,0,0],
+          ["AddBond",77,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",161,93.430496],
+        "ops": [
+          ["DeleteBond",72,0,0,2],
+          ["AddBond",72,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",162,93.484180],
+        "ops": [
+          ["AddBond",30,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["terminate",163,93.617958],
+        "ops": [
+          ["DeleteBond",72,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_2",164,94.693344],
+        "ops": [
+          ["DeleteBond",77,0,0,1],
+          ["AddBond",77,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_1",165,96.190224],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",30,0,0,0],
+          ["AddBond",30,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_3",166,96.949393],
+        "ops": [
+          ["DeleteBond",77,0,0,2],
+          ["AddBond",77,0,0,3]
+        ]
+      },
+      {
+        "props": ["terminate",167,97.778480],
+        "ops": [
+          ["DeleteBond",77,0,0,3]
+        ]
+      },
+      {
+        "props": ["initiate",168,97.824489],
+        "ops": [
+          ["AddBond",74,0,0,0],
+          ["StateChange",0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",169,98.018437],
+        "ops": [
+          ["DeleteBond",30,0,0,1],
+          ["AddBond",30,0,0,2]
+        ]
+      },
+      {
+        "props": ["elongate_3",170,98.185752],
+        "ops": [
+          ["DeleteBond",30,0,0,2],
+          ["AddBond",30,0,0,3]
+        ]
+      },
+      {
+        "props": ["elongate_1",171,98.528417],
+        "ops": [
+          ["StateChange",0,0,0],
+          ["DeleteBond",74,0,0,0],
+          ["AddBond",74,0,0,1]
+        ]
+      },
+      {
+        "props": ["elongate_2",172,98.999615],
+        "ops": [
+          ["DeleteBond",74,0,0,1],
+          ["AddBond",74,0,0,2]
+        ]
+      },
+      {
+        "props": ["terminate",173,101.366550],
+        "ops": [
+          ["DeleteBond",30,0,0,3]
+        ]
+      }
+    ]
+  }
+}

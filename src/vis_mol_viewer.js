@@ -1,8 +1,10 @@
 import * as core from "./vis_core.js";
 
 // core system initialization, async
-let settings = new core.Settings("vis_settings.json");
-await settings.parse_settings_file();
+let settings = new core.Settings("vis_settings.json", "nika_log.json");
+await settings.initialize();
+console.log(settings);
+// await settings.parse_settings_file();
 let sys = settings.system;
 
 // keep track of what we are currently showing
