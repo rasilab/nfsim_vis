@@ -18,6 +18,7 @@ export class Actor {
     Error("Not implemented for template class");
   }
 }
+
 export class MoleculeType {
   constructor(mtype_dict, events_bool) {
     this.dict = mtype_dict;
@@ -244,6 +245,7 @@ export class Bonds {
     }
   }
 }
+
 export class MoleculePattern {
   constructor(molec_dict) {
     this.dict = molec_dict;
@@ -253,6 +255,7 @@ export class MoleculePattern {
     this.components = [];
   }
 }
+
 export class ComponentPattern {
   constructor(comp_dict) {
     this.dict = comp_dict;
@@ -262,6 +265,7 @@ export class ComponentPattern {
     this.bonds = [];
   }
 }
+
 export class Pattern {
   constructor(pat_dict) {
     this.dict = pat_dict;
@@ -373,6 +377,7 @@ export class Pattern {
     return comp_list;
   }
 }
+
 export class RxnSide {
   constructor(dict) {
     this.dict = dict;
@@ -390,24 +395,28 @@ export class RxnSide {
     }
   }
 }
+
 export class Reactants extends RxnSide {
   constructor(dict) {
     super(dict);
     this.side_type = "reactants"
   }
 }
+
 export class Products extends RxnSide {
   constructor(dict) {
     super(dict);
     this.side_type = "products"
   }
 }
+
 export class Operation {
   constructor(type, args) {
     this.type = type;
     this.args = args;
   }
 }
+
 export class Operations {
   constructor(dict) {
     // 
@@ -451,6 +460,7 @@ export class Operations {
     }
   }
 }
+
 export class RateLaw {
   constructor(id, dict) {
     this.id = id;
@@ -485,7 +495,7 @@ export class RateLaw {
 
 // Main system class
 export class System {
-  constructor(canvas, actors, svgs, timeline) {
+  constructor(canvas, actors, svgs, timeline, event_file) {
     this.canvas = canvas;
     this.actors = actors;
     this.actor_definitions = {};
@@ -494,8 +504,15 @@ export class System {
     this.symbols = {};
     this.instances = [];
     this.rules = {};
+    this.event_file = event_file;
   }
   async initialize(settings) {
+    if (typeof this.event_file !== 'undefined') {
+      // events file stuff
+      await this.parse_event_file();
+      await this.get_complete_molecule_types();
+      await this.get_initial_state();
+    }
     // we need to load in the SVG strings first
     await this.load_svgs(settings["svgs"]);
     // we now make symbols from each for re-use
@@ -504,6 +521,33 @@ export class System {
     await this.add_actor_definitions(settings);
     // get rules
     await this.add_rules(settings);
+  }
+  async parse_event_file() {
+    // fetch settings JSON
+    let event_json = await fetch(this.event_file).then((event) =>
+      event.json()
+    );
+    // store simulation info
+    this.sim_info = event_json['info'];
+    // setup molecule types
+    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['molecule_types']);
+    // get the initial state map
+    this.initial_state_dict = event_json['initialState'];
+    // store events
+    this.events = event_json['firings'];
+    // inform that events are initialized
+    console.log("--Events intialized--");
+  }
+  async get_nf_molecule_types(mtype_json) {
+    let nf_mtypes = {};
+    for (let i = 0;i<mtype_json.length;i++) {
+      nf_mtypes[mtype_json[i]['name']] = mtype_json[i];
+    }
+    return nf_mtypes;
+  }
+  async get_initial_state() {
+    // we use the finalized molecule types to initialize 
+    // the model state fully
   }
   async add_rules(settings) {
     let model = settings['model']['sbml']['model'];
@@ -521,6 +565,85 @@ export class System {
     let rule         = new Rule(name, reactants, products, ratelaw, ops);
     this.rules[name] = rule;
   }
+  async add_actor_definitions(settings) {
+    if (typeof this.events !== 'undefined') {
+      this._add_actor_defs_event(settings);
+    } else {
+      this._add_actor_defs_non_event(settings);
+    }
+  }
+  async _add_actor_defs_event(settings) {
+    console.log("_add_actor_defs_event not implemented yet");
+  }
+  async _add_actor_defs_non_event(settings) {
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
+    for (let i = 0; i < mol_types.length; i++) {
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+    }
+  }
+  add_actor_from_name(actor_name) {
+    if (typeof this.events !== 'undefined') {
+      return this._add_actor_from_name_event(actor_name);
+    } else {
+      return this._add_actor_from_name_non_event(actor_name);
+    }
+  }
+  _add_actor_from_name_event(actor_name) {
+    console.log("_add_actor_from_name_event not implemented yet");
+  }
+  _add_actor_from_name_non_event(actor_name) {
+    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
+    actor.set_system(this);
+    return actor;
+  }
+  add_actor(actor) {
+    actor.set_system(this);
+    this.actors[actor.name] = actor;
+  }
+  _make_actor_from_def_non_event(def) {
+    let molecule = new Molecule(
+      def["@id"],
+      this,
+      {},
+      this.symbols[def["svg_name"]]
+    );
+    if ("ListOfComponentTypes" in def) {
+      let comps = def["ListOfComponentTypes"]['ComponentType'];
+      this.parse_comps(comps, molecule);
+    }
+    return molecule;
+  }
+  // svgs and related methods
+  add_svg(name, svg) {
+    this.svgs[name] = svg;
+  }
+  async load_svgs(svgs) {
+    for (let i = 0; i < svgs.length; i++) {
+      let svg = svgs[i];
+      // check if it's a file
+      if (svg["type"] == "file") {
+        await fetch(svg["path"])
+          .then((resp) => resp.text())
+          .then((str) => this.add_svg(`${svg["name"]}`, str));
+      } else if (svg["type"] == "string") {
+        this.add_svg(`${svg["name"]}`, svg["string"]);
+      } else {
+        Error(`SVG type ${svg["type"]} is not implemented!`);
+      }
+    }
+  }
+  define_symbol(rep_name) {
+    let s = this.canvas.symbol();
+    let def = s.svg(this.svgs[rep_name]);
+    this.symbols[rep_name] = def;
+  }
+  define_symbols() {
+    return Promise.all(
+      Object.keys(this.svgs).map((x) => this.define_symbol(x))
+    );
+  }
+  // parsing stuff 
   async parse_reactants(reactants_dict){
     let reactants = new Reactants(reactants_dict);
     return reactants;
@@ -541,22 +664,6 @@ export class System {
     } else {
       setTimeout(parse_ops, 250);
     }
-  }
-  async add_actor_definitions(settings) {
-    let model = settings['model']['sbml']['model'];
-    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
-    for (let i = 0; i < mol_types.length; i++) {
-      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
-    }
-  }
-  add_actor_from_name(actor_name) {
-    let actor = this.make_actor_from_def(this.actor_definitions[actor_name]);
-    actor.set_system(this);
-    return actor;
-  }
-  add_actor(actor) {
-    actor.set_system(this);
-    this.actors[actor.name] = actor;
   }
   parse_state(state_dict, component) {
     let name = state_dict["@id"];
@@ -632,48 +739,6 @@ export class System {
       molecule.add_component(component.name, component);
     }
   }
-  make_actor_from_def(def) {
-    let molecule = new Molecule(
-      def["@id"],
-      this,
-      {},
-      this.symbols[def["svg_name"]]
-    );
-    if ("ListOfComponentTypes" in def) {
-      let comps = def["ListOfComponentTypes"]['ComponentType'];
-      this.parse_comps(comps, molecule);
-    }
-    return molecule;
-  }
-  // svgs and related methods
-  add_svg(name, svg) {
-    this.svgs[name] = svg;
-  }
-  async load_svgs(svgs) {
-    for (let i = 0; i < svgs.length; i++) {
-      let svg = svgs[i];
-      // check if it's a file
-      if (svg["type"] == "file") {
-        await fetch(svg["path"])
-          .then((resp) => resp.text())
-          .then((str) => this.add_svg(`${svg["name"]}`, str));
-      } else if (svg["type"] == "string") {
-        this.add_svg(`${svg["name"]}`, svg["string"]);
-      } else {
-        Error(`SVG type ${svg["type"]} is not implemented!`);
-      }
-    }
-  }
-  define_symbol(rep_name) {
-    let s = this.canvas.symbol();
-    let def = s.svg(this.svgs[rep_name]);
-    this.symbols[rep_name] = def;
-  }
-  define_symbols() {
-    return Promise.all(
-      Object.keys(this.svgs).map((x) => this.define_symbol(x))
-    );
-  }
 }
 
 // Main settings class for parsing a setting file
@@ -699,51 +764,15 @@ export class Settings {
       .addTo("body")
       .size(window.innerWidth, window.innerHeight)
       .viewbox(0, 0, w, h);
-    let sys = new System(canvas, {}, {}, timeline);
+    // instantiate system
+    let sys = new System(canvas, {}, {}, timeline, this.event_file);
     // initialize
     await sys.initialize(vis_settings);
     // return initialized system
     console.log("--System intialized--");
     this.system = sys;
   }
-  async parse_event_file() {
-    // check if an event file is given
-    if (this.event_file == null) { 
-      return false;
-    }
-    // fetch settings JSON
-    let event_json = await fetch(this.event_file).then((event) =>
-      event.json()
-    );
-    // store simulation info
-    this.sim_info = event_json['info'];
-    // setup molecule types
-    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['molecule_types']);
-    // get the initial state map
-    this.initial_state_dict = event_json['initialState'];
-    // store events
-    this.events = event_json['firings'];
-    // inform that events are initialized
-    console.log("--Events intialized--");
-  }
-  async get_nf_molecule_types(mtype_json) {
-    let nf_mtypes = {};
-    for (let i = 0;i<mtype_json.length;i++) {
-      nf_mtypes[mtype_json[i]['name']] = mtype_json[i];
-    }
-    return nf_mtypes;
-  }
-  async get_initial_state() {
-    // we use the finalized molecule types to initialize 
-    // the model state fully
-  }
-  async get_molecule_types() {
-    // we use both event file and model if possible
-  }
   async initialize() {
-    await this.parse_event_file();
-    await this.get_complete_molecule_types();
-    await this.get_initial_state();
     await this.parse_settings_file();
   }
 }

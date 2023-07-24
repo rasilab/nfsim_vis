@@ -1,14 +1,15 @@
 import * as core from "./vis_core.js";
 
 // core system initialization, async
-let settings = new core.Settings("vis_settings.json", "events.json");
+// let settings = new core.Settings("vis_settings.json", "events.json");
+let settings = new core.Settings("nika_vis_settings.json");
 // await settings.parse_settings_file();
 await settings.initialize();
 console.log(settings);
 let sys = settings.system;
 
 // load log
-let log_file = "nika_log.json";
+let log_file = "events.json";
 let log_obj = await fetch(log_file).then((log) => log.json());
 let firings = log_obj["simulation"]["firings"];
 
