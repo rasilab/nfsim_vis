@@ -510,7 +510,6 @@ export class System {
     if (typeof this.event_file !== 'undefined') {
       // events file stuff
       await this.parse_event_file();
-      await this.get_complete_molecule_types();
       await this.get_initial_state();
     }
     // we need to load in the SVG strings first
@@ -528,13 +527,14 @@ export class System {
       event.json()
     );
     // store simulation info
-    this.sim_info = event_json['info'];
+    this.sim_info = event_json['simulation']['info'];
     // setup molecule types
-    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['molecule_types']);
+    console.log(event_json);
+    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['simulation']['molecule_types']);
     // get the initial state map
-    this.initial_state_dict = event_json['initialState'];
+    this.initial_state_dict = event_json['simulation']['initialState'];
     // store events
-    this.events = event_json['firings'];
+    this.events = event_json['simulation']['firings'];
     // inform that events are initialized
     console.log("--Events intialized--");
   }
@@ -548,6 +548,29 @@ export class System {
   async get_initial_state() {
     // we use the finalized molecule types to initialize 
     // the model state fully
+    // we should have initial state dictionary saved
+    // under attribute this.initial_state_dict
+    let molecule_array = this.initial_state_dict['molecule_array'];
+    let ops = this.initial_state_dict['ops'];
+    // molecule array is a compressed array of full set of
+    // initial molecules
+    let type_id,count;
+    this.initial_molecule_array = [];
+    for (let i = 0; i < molecule_array.length; i++) {
+      // each element is an array of two elements
+      type_id = molecule_array[i][0];
+      count = molecule_array[i][1];
+      // we need to add "count" of "type_id" molecules
+      // to our initial molecule array
+      for (let j = 0; j<count; j++) {
+        this.initial_molecule_array.push(type_id);
+      }
+    }
+    // ops is the full list of operations that needs to be applied
+    // to the initial set of molecules to get the actual initial 
+    // state
+    console.log("operations haven't been implemented yet, just saving")
+    this.init_ops = ops;
   }
   async add_rules(settings) {
     let model = settings['model']['sbml']['model'];
