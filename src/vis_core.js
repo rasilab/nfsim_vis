@@ -530,7 +530,6 @@ export class System {
     // store simulation info
     this.sim_info = event_json['simulation']['info'];
     // setup molecule types
-    console.log(event_json);
     this.nf_molecule_types = await this.get_nf_molecule_types(event_json['simulation']['molecule_types']);
     // get the initial state map
     this.initial_state_dict = event_json['simulation']['initialState'];

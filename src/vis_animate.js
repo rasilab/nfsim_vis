@@ -11,7 +11,7 @@ let sys = settings.system;
 // load log
 let log_file = "events.json";
 let log_obj = await fetch(log_file).then((log) => log.json());
-let firings = log_obj["simulation"]["firings"];
+let firings = sys.events;
 
 // get molecule types
 let molecule_types = {}; // key: typeID, value: molecule type name
