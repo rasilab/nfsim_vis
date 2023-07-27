@@ -2,8 +2,6 @@ import * as core from "./core.js";
 
 // core system initialization, async
 let settings = new core.Settings("settings.json", "events.json");
-// let settings = new core.Settings("nika_vis_settings.json");
-// await settings.parse_settings_file();
 await settings.initialize();
 console.log(settings);
 let sys = settings.system;
