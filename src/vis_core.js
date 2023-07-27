@@ -48,6 +48,7 @@ export class Molecule extends Actor {
     this.symbol = symbol;
     this.group = null;
     this.animator = null;
+    this.typeID = null;
   }
   add_component(name, component) {
     // component.set_system(this.system);
@@ -596,12 +597,70 @@ export class System {
     }
   }
   async _add_actor_defs_event(settings) {
-    console.log("_add_actor_defs_event not implemented yet");
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
+    for (let i = 0; i < mol_types.length; i++) {
+      // we need to find the same molecule in NFsim definitions
+      // Object.keys(this.svgs)
+      if (mol_types[i]['@id'] in this.nf_molecule_types) {
+        // if we have it in both, we need to consolidate
+        mol_types[i]['typeID'] = this.nf_molecule_types[mol_types[i]['@id']]['typeID'];
+        // we need to ensure component ordering is correct
+        let reorder = false;
+        let component_arr = mol_types[i]["ListOfComponentTypes"]["ComponentType"];
+        let comp_id;
+        for (let k = 0; k < this.nf_molecule_types[mol_types[i]['@id']]['components'].length; k++) {
+          // if length is 1, this is not an array
+          if (this.nf_molecule_types[mol_types[i]['@id']]['components'].length>1) {
+            comp_id = component_arr[k]['@id'];
+          } else {
+            comp_id = component_arr['@id'];
+          }
+          // compare names
+          if (this.nf_molecule_types[mol_types[i]['@id']]['components'][k]!==comp_id) {
+            // this means we have a mismatch and we'll have to reorder
+            reorder = true;
+            // TODO: This skips order checking the component states
+            // for now I'm assuming that, if the ordering of the components
+            // is correct, the states are likely ordered correctly too
+            // this should eventually be remedied UNLESS we determine that
+            // NFsim ordering is preserved, which looks likely. 
+            break;
+          }
+        }
+        // if we must, let's reorder components
+        if (reorder) {
+          // let's record this happening on console, I actually don't expect
+          // this will be relevant since orderings seem to be preseved
+          console.log("Molecule type: ", mol_types[i]['@id'], " has a mismatch with NFsim definition. ");
+          console.log("We will need to reorder the components to ensure correct ordering.\n");
+          let new_component_arr = [];
+          for (let k = 0; k < this.nf_molecule_types[mol_types[i]['@id']]['components'].length; k++) {
+            for (let l = 0; l < component_arr.length; l++) {
+              if (this.nf_molecule_types[mol_types[i]['@id']]['components'][k]!==component_arr[k]['@id']) {
+                // TODO: similar to above TODO, we are assuming states are 
+                // ordered correctly already
+                new_component_arr.push(component_arr[k])
+              }
+            }
+          }
+          // set new array
+          mol_types[i]["ListOfComponentTypes"]["ComponentType"] = new_component_arr;
+        }
+      } else {
+        // if this is not found, we can try to continue without it 
+        // but we should report it at least
+        console.log("can't find: ", mol_types[i]['@id'], " in event file definitions");
+      }
+      // add the definition 
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+    }
   }
   async _add_actor_defs_non_event(settings) {
     let model = settings['model']['sbml']['model'];
     let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
     for (let i = 0; i < mol_types.length; i++) {
+      mol_types[i]['typeID'] = i;
       this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
     }
   }
@@ -613,7 +672,9 @@ export class System {
     }
   }
   _add_actor_from_name_event(actor_name) {
-    console.log("_add_actor_from_name_event not implemented yet");
+    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
+    actor.set_system(this);
+    return actor;
   }
   _add_actor_from_name_non_event(actor_name) {
     let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
@@ -631,6 +692,9 @@ export class System {
       {},
       this.symbols[def["svg_name"]]
     );
+    if ("typeID" in def) {
+      molecule.typeID = def['typeID'];
+    }
     if ("ListOfComponentTypes" in def) {
       let comps = def["ListOfComponentTypes"]['ComponentType'];
       this.parse_comps(comps, molecule);
