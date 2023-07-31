@@ -7,6 +7,7 @@ export class Actor {
     this.name = name;
     this.parent = parent;
     this.system = null;
+    this.id = null;
   }
   set_parent(parent) {
     this.parent = parent;
@@ -49,11 +50,30 @@ export class Molecule extends Actor {
     this.group = null;
     this.animator = null;
     this.typeID = null;
+    this.component_by_id = {};
+    this.current_component = 0;
+    this.bonds = {};
+  }
+  add_bond(cid, target_tuple, target_component) {
+    this.bonds[target_tuple] = target_component;
+    this.component_by_id[cid].add_bond(target_tuple, target_component);
+  }
+  remove_bond(cid, target_tuple) {
+    if (target_tuple in this.bonds) {
+      delete this.bonds[target_tuple];
+      this.component_by_id[cid].remove_bond(target_tuple);
+      return true;
+    } else {
+      console.log("can't find key: ", target_tuple, " in bonds!");
+      return false
+    }
   }
   add_component(name, component) {
     // component.set_system(this.system);
     // there's something weird about how systems are set
     this.components[name] = component;
+    this.component_by_id[this.current_component] = component;
+    this.current_component += 1;
   }
   render() {
     if (this.group == null) {
@@ -90,6 +110,19 @@ export class Component extends Actor {
     this.curr_state_id = null;
     this.current_render;
     this.pos = pos;
+    this.bonds = {};
+  }
+  add_bond(target_tuple, target_component) {
+    this.bonds[target_tuple] = target_component;
+  }
+  remove_bond(target_tuple) {
+    if (target_tuple in this.bonds) {
+      delete this.bonds[target_tuple];
+      return true;
+    } else {
+      console.log("can't find key: ", target_tuple, " in bonds!");
+      return false
+    }
   }
   add_state(state) {
     state.set_system(this.system);
@@ -412,14 +445,65 @@ export class Products extends RxnSide {
 }
 
 export class Operation {
-  constructor(type, args) {
+  constructor(type, args, sys) {
+    this.sys;
     this.type = type;
     this.args = args;
+  }
+  apply(state_dict) {
+    switch(this.type) {
+      case "AddBond":
+        let ab_m1_id = this.args[0];
+        let ab_c1_id = this.args[1];
+        let ab_m2_id = this.args[2];
+        let ab_c2_id = this.args[3];
+        state_dict[ab_m1_id].add_bond(ab_c1_id, [ab_m2_id,ab_c2_id], state_dict[ab_m2_id].component_by_id[ab_c2_id]);
+        state_dict[ab_m2_id].add_bond(ab_c2_id, [ab_m1_id,ab_c1_id], state_dict[ab_m1_id].component_by_id[ab_c1_id]);
+        break;
+      case "DeleteBond":
+        let db_m1_id = this.args[0];
+        let db_c1_id = this.args[1];
+        let db_m2_id = this.args[2];
+        let db_c2_id = this.args[3];
+        state_dict[db_m1_id].remove_bond(db_c1_id, [db_m2_id,db_c2_id]);
+        state_dict[db_m2_id].remove_bond(db_c2_id, [db_m1_id,db_c1_id]);
+        break;
+      case "StateChange":
+        let mid = this.args[0];
+        let cid = this.args[1];
+        let new_val = this.args[2];
+        state_dict[mid].component_by_id[cid].set_state_by_id(new_val);
+        break;
+      case "ChangeCompartment":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "Add":
+        let add_id = this.args[0];
+        let add_type_id = this.args[1];
+        let add_molec = this.sys.add_actor_from_name(this.sys.typeid_to_name[add_type_id]);
+        state_dict[add_id] = add_molec;
+
+        break;
+      case "Delete":
+        let del_id = this.args[0];
+        delete state_dict[del_id];
+        break;
+      case "IncrementState":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "DecrementState":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "DecrementPopulation":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+    }
   }
 }
 
 export class Operations {
-  constructor(dict) {
+  constructor(dict, sys) {
+    this.sys = sys;
     // 
     this.dict = dict;
     // read the operation
@@ -455,7 +539,7 @@ export class Operations {
             args[this.op_args[j]] = dict[this.ops_types[i]][this.op_args[j]];
           }
         }
-        let correct_op = new Operation(this.ops_types[i], args);
+        let correct_op = new Operation(this.ops_types[i], args, this.sys);
         this.operations.push(correct_op);
       }
     }
@@ -506,6 +590,8 @@ export class System {
     this.instances = [];
     this.rules = {};
     this.event_file = event_file;
+    this.full_state = null;
+    this.typeid_to_name = {}
   }
   async initialize(settings) {
     if (typeof this.event_file !== 'undefined') {
@@ -521,6 +607,23 @@ export class System {
     await this.add_actor_definitions(settings);
     // get rules
     await this.add_rules(settings);
+    // add molecules from initial vector
+    await this.get_init_state();
+  }
+  async get_init_state() {
+    this.full_state = {};
+    let molec;
+    for (let i = 0;i<this.initial_molecule_array.length;i++) { 
+      if (this.initial_molecule_array[i]>=0) {
+        molec = this.add_actor_from_name(this.typeid_to_name[this.initial_molecule_array[i]]);
+        this.full_state[i] = molec;
+      }
+    }
+    // now that we have the state, we apply
+    // all the operations to get the true initial state
+    for (let i = 0;i<this.init_ops.length;i++) {
+      this.init_ops[i].apply(this.full_state);
+    }
   }
   async parse_event_file() {
     // fetch settings JSON
@@ -569,8 +672,10 @@ export class System {
     // ops is the full list of operations that needs to be applied
     // to the initial set of molecules to get the actual initial 
     // state
-    console.log("operations haven't been implemented yet, just saving")
-    this.init_ops = ops;
+    this.init_ops = []
+    for (let i = 0; i < ops.length; i++) {
+      this.init_ops.push(new Operation(ops[i][0], ops[i].slice(1), this));
+    }
   }
   async add_rules(settings) {
     let model = settings['model']['sbml']['model'];
@@ -604,6 +709,7 @@ export class System {
       if (mol_types[i]['@id'] in this.nf_molecule_types) {
         // if we have it in both, we need to consolidate
         mol_types[i]['typeID'] = this.nf_molecule_types[mol_types[i]['@id']]['typeID'];
+        this.typeid_to_name[mol_types[i]['typeID']] = mol_types[i]['@id'];
         // we need to ensure component ordering is correct
         let reorder = false;
         let component_arr = mol_types[i]["ListOfComponentTypes"]["ComponentType"];
@@ -660,6 +766,7 @@ export class System {
     let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
     for (let i = 0; i < mol_types.length; i++) {
       mol_types[i]['typeID'] = i;
+      this.typeid_to_name[i] = mol_types[i]['@id'];
       this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
     }
   }
@@ -682,7 +789,11 @@ export class System {
   }
   add_actor(actor) {
     actor.set_system(this);
-    this.actors[actor.name] = actor;
+    if (actor.id == null) {
+      this.actors[actor.name] = actor;
+    } else {
+      this.actors[actor.id] = actor;
+    }
   }
   _make_actor_from_def_non_event(def) {
     let molecule = new Molecule(
@@ -745,7 +856,7 @@ export class System {
   }
   async parse_ops(opt_dict){
     if (typeof opt_dict !== "undefined") {
-      let ops = new Operations(opt_dict);
+      let ops = new Operations(opt_dict, this);
       return ops.operations; 
     } else {
       setTimeout(parse_ops, 250);
