@@ -71,6 +71,7 @@ export class Molecule extends Actor {
   add_component(name, component) {
     // component.set_system(this.system);
     // there's something weird about how systems are set
+    component.id = this.current_component;
     this.components[name] = component;
     this.component_by_id[this.current_component] = component;
     this.current_component += 1;
@@ -221,6 +222,7 @@ export class Rule {
     this.operations = operations;
   }
 }
+
 export class Bonds {
   constructor(bonds_dict) {
     this.dict = bonds_dict;
@@ -446,7 +448,7 @@ export class Products extends RxnSide {
 
 export class Operation {
   constructor(type, args, sys) {
-    this.sys;
+    this.sys = sys;
     this.type = type;
     this.args = args;
   }
@@ -474,19 +476,18 @@ export class Operation {
         let new_val = this.args[2];
         state_dict[mid].component_by_id[cid].set_state_by_id(new_val);
         break;
-      case "ChangeCompartment":
-        console.log("operation type: ", this.type, " is not implemented!");
-        break;
       case "Add":
         let add_id = this.args[0];
         let add_type_id = this.args[1];
         let add_molec = this.sys.add_actor_from_name(this.sys.typeid_to_name[add_type_id]);
         state_dict[add_id] = add_molec;
-
         break;
       case "Delete":
         let del_id = this.args[0];
         delete state_dict[del_id];
+        break;
+      case "ChangeCompartment":
+        console.log("operation type: ", this.type, " is not implemented!");
         break;
       case "IncrementState":
         console.log("operation type: ", this.type, " is not implemented!");
@@ -597,7 +598,7 @@ export class System {
     if (typeof this.event_file !== 'undefined') {
       // events file stuff
       await this.parse_event_file();
-      await this.get_initial_state();
+      await this.get_initial_state_array();
     }
     // we need to load in the SVG strings first
     await this.load_svgs(settings["svgs"]);
@@ -648,7 +649,7 @@ export class System {
     }
     return nf_mtypes;
   }
-  async get_initial_state() {
+  async get_initial_state_array() {
     // we use the finalized molecule types to initialize 
     // the model state fully
     // we should have initial state dictionary saved
