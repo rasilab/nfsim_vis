@@ -8,6 +8,8 @@ export class Actor {
     this.parent = parent;
     this.system = null;
     this.id = null;
+    this.x = 0;
+    this.y = 0;
   }
   set_parent(parent) {
     this.parent = parent;
@@ -78,7 +80,8 @@ export class Molecule extends Actor {
   }
   render() {
     if (this.group == null) {
-      this.group = this.system.canvas.group();
+      // this.group = this.system.canvas.group();
+      this.group = this.system.canvas.nested();
     }
     // render molecule
     this.group.use(this.symbol);
@@ -99,6 +102,13 @@ export class Molecule extends Actor {
     console.log(`Molecule rep: ${this.symbol}`);
     for (let i = 0; i < Object.keys(this.components).length; i++) {
       this.components[Object.keys(this.components)[i]].print_details();
+    }
+  }
+  sync_svg_location() {
+    this.x = this.group.x();
+    this.y = this.group.y();
+    for (let i = 0; i < Object.keys(this.components).length; i++) {
+      this.components[Object.keys(this.components)[i]].sync_svg_location();
     }
   }
 }
@@ -176,6 +186,10 @@ export class Component extends Actor {
     for (let i = 0; i < Object.keys(this.states).length; i++) {
       this.states[Object.keys(this.states)[i]].print_details();
     }
+  }
+  sync_svg_location() {
+    this.x = this.current_render.x();
+    this.y = this.current_render.y();
   }
 }
 

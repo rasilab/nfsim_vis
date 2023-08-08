@@ -66,10 +66,12 @@ for (const entry of molecule_array) {
         }
         render.opacity(0); // hide ribosome for now
       }
-
+      // sync locations 
+      instance.sync_svg_location();
       // initialize animator
       instance.animator = render.animate(1, 0, "absolute");
     }
+    
   }
 }
 
