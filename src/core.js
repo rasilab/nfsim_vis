@@ -197,6 +197,7 @@ export class ComponentState extends Actor {
   constructor(name, parent, symbol) {
     super(name, parent);
     this.symbol = symbol;
+    this.render;
   }
   set_symbol(symbol) {
     this.symbol = symbol;
@@ -215,6 +216,8 @@ export class ComponentState extends Actor {
       render_inst.back();
       render_inst.forward(); // keep molecule as the very first render
     }
+    render_inst.timeline(this.system.timeline); // for animations scheduled on state render directly
+    this.render = render_inst;
     // transform as needed
     return render_inst;
   }
@@ -273,15 +276,15 @@ export class Bonds {
         let bond_part_2 = bond_arrs[1];
         // deal with bond partner 1
         if (bond_part_1 in this.bonds) {
-          this.bonds[bond_part_1] = [j+1];
-        } else {
           this.bonds[bond_part_1].push(j+1);
+        } else {
+          this.bonds[bond_part_1] = [j+1];
         }
         // deal with bond partner 2
         if (bond_part_2 in this.bonds) {
-          this.bonds[bond_part_2] = [j+1];
-        } else {
           this.bonds[bond_part_2].push(j+1);
+        } else {
+          this.bonds[bond_part_2] = [j+1];
         }
         // deal with counter
         j++;
