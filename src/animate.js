@@ -1,90 +1,61 @@
 import * as core from "./core.js";
 
-console.log("starting");
-
-// core system initialization, async
+// core system initialization
 let settings = new core.Settings("../complex_vis/complex_vis_settings.json", "../complex_vis/complex_log.json");
-// await settings.initialize();
-await settings.parse_settings_file();
+await settings.initialize();
 let sys = settings.system;
-
-// load log
-let log_file = "../complex_vis/complex_log.json";
-let log_obj = await fetch(log_file).then((log) => log.json());
-console.log("done fetching log");
-let firings = log_obj["simulation"]["firings"];
-// let firings = sys.events;
-
-// get molecule types
-let molecule_types = {}; // key: typeID, value: molecule type name
-let molecule_types_obj = log_obj["simulation"]["molecule_types"];
-for (const molecule_type of molecule_types_obj) {
-  molecule_types[molecule_type["typeID"]] = molecule_type["name"];
-}
+let firings = sys.events; // event log
 
 // some info for positioning things
 let window_center;
-let mrna_size;
-let mrna_positions;
+let mrna_size = {w: 6000, h: 200}; // this needs to not be hardcoded, but there's something weird about getting width/height of a nested group
+let mrna_positions; // might not need this here anymore
 
-// get initial state
-let state = {}; // key: index, value: molecule instance
-let initial_state_obj = log_obj["simulation"]["initialState"];
-let molecule_array = initial_state_obj["molecule_array"];
-let index = 0;
-for (const entry of molecule_array) {
-  let typeID = entry[0];
-  let number = entry[1];
-  if (typeID == -1) {
-    for (let i = 0; i < number; i++) {
-      index++;
+// initial rendering
+for (const instance of Object.values(sys.full_state)) {
+  // first find and process mrna
+  if (instance.name == "mrna") {
+    mrna_positions = Object.keys(instance.components).slice(1);
+    for (let i = 0; i<mrna_positions.length; i++) {
+      // spread out nt component positions
+      let component = instance.components[mrna_positions[i]];
+      component.pos[0] += (mrna_size.w / mrna_positions.length) * i;
     }
   }
-  let name = molecule_types[typeID];
-  if (name != undefined) {
-    for (let i = 0; i < number; i++) {
-      let instance = sys.add_actor_from_name(name);
-      state[index] = instance;
-      index++;
-
-      // does it make sense to do the initial render here?
+}
+for (const instance of Object.values(sys.full_state)) {
       let render = instance.render();
-
-      // set up initial appearance
+      
+      // now set up initial appearance for all molecules
       // - mrna: opacity 1; x,y centered in window
       // - ribosomes: opacity 0; x at left edge; y above mrna
-      switch(name) {
+      switch(instance.name) {
         case "mrna":
-          // load info for positioning here (using render)
-          // - alternatively, could maybe do something similar by
-          // reading svg information directly from vis_settings.json
+          // load info for positioning here (using render) - maybe this can be done a better way
           window_center = render.point(window.innerWidth/2, window.innerHeight/2);
-          mrna_size = {
-            w: render.width(),
-            h: render.height()
-          };
-          mrna_positions = Object.keys(instance.components);
 
-          render.center(window_center.x, window_center.y); // place mrna
-          render.opacity(1); // show mrna
+          render.move(
+            window_center.x - mrna_size.w/2,
+            window_center.y - mrna_size.h/2
+          ); // place mrna
           break;
 
-        // todo: fix the cases where something can't be positioned because it was loaded before mrna
+        // the following might be unnecessary if these are moved later anyway
         case "lsu":
           if (window_center != undefined && mrna_size != undefined) {
-            render.center(0, window_center.y + 2*mrna_size.h);
+            render.move(0, window_center.y + mrna_size.h);
           }
           render.opacity(0);
           break;
         case "ssu":
           if (window_center != undefined && mrna_size != undefined) {
-            render.center(0, window_center.y - 2*mrna_size.h);
+            render.move(0, window_center.y - 3*mrna_size.h);
           }
           render.opacity(0);
           break;
         case "tc":
           if (window_center != undefined && mrna_size != undefined) {
-            render.center(0, window_center.y - mrna_size.h);
+            render.move(0, window_center.y - 2*mrna_size.h);
           }
           render.opacity(0);
           break;
@@ -103,27 +74,17 @@ for (const entry of molecule_array) {
       instance.sync_svg_location();
       // initialize animator
       instance.animator = render.animate(1, 0, "absolute");
-    }
-    
-  }
 }
 
 // note that movement of ribosomes between positions on the mrna
 // is hard-coded based on the width of the mrna svg and number of
 // positions, not tied to the actual given pos of the components
-let ribosome_movement = mrna_size.w / (mrna_positions.length - 1);
+let ribosome_movement = mrna_size.w / mrna_positions.length;
 
-// we need to (loosely, just enough for animation) keep track of what is bound to what
-let ssu_bonds = {};
-// also keep track of how far each ssu has moved along the mrna
+// keep track of how far each ssu has moved along the mrna
 let ssu_movement = {};
-
-for (const molecule_index of Object.keys(state)) {
-  if (state[molecule_index].name == "ssu") {
-    ssu_bonds[molecule_index] = {
-      tc: undefined,
-      lsu: undefined
-    };
+for (const molecule_index of Object.keys(sys.full_state)) {
+  if (sys.full_state[molecule_index].name == "ssu") {
     ssu_movement[molecule_index] = 0;
   }
 }
@@ -136,9 +97,15 @@ for (const firing of firings) {
   let ops = firing["ops"];
 
   for (const op of ops) {
-    let op_name = op[0];
+    let operation = new core.Operation(op[0], op.slice(1), sys);
+
+    operation.apply(sys.full_state);
+    // are there any scenarios in which it would be useful to know the previous state?
 
     // figure out what we're working with
+    // - is there a clean way to include the following arg parsing in the api somehow?
+
+    let op_name = operation.type;
 
     let mol_1_index;
     let comp_1_index;
@@ -148,18 +115,18 @@ for (const firing of firings) {
     
     switch(op_name) {
       case "StateChange":
-        mol_1_index = op[1];
-        comp_1_index = op[2];
-        comp_state_index = op[3];
+        mol_1_index = operation.args[0];
+        comp_1_index = operation.args[1];
+        comp_state_index = operation.args[2];
         break;
 
       // AddBond, DeleteBond have the same arguments
       case "AddBond":
       case "DeleteBond":
-        mol_1_index = op[1];
-        comp_1_index = op[2];
-        mol_2_index = op[3];
-        comp_2_index = op[4];
+        mol_1_index = operation.args[0];
+        comp_1_index = operation.args[1];
+        mol_2_index = operation.args[2];
+        comp_2_index = operation.args[3];
         break;
       
       default:
@@ -172,10 +139,10 @@ for (const firing of firings) {
     let inst_2;
 
     if (mol_1_index != undefined) {
-      inst_1 = state[mol_1_index];
+      inst_1 = sys.full_state[mol_1_index];
     }
     if (mol_2_index != undefined) {
-      inst_2 = state[mol_2_index];
+      inst_2 = sys.full_state[mol_2_index];
     }
 
     // where does it make sense to set opacity of actors?
@@ -249,16 +216,13 @@ for (const firing of firings) {
         // use AddBond as representative operation
         switch(op_name) {
           case "AddBond":
-            // for our records
-            ssu_bonds[mol_1_index].tc = mol_2_index;
-
             // ssu and tc: opacity 1, move together to somewhere around but not at left edge of mrna
 
             inst_1.animator = inst_1.animator.animate({
               duration: duration,
               delay: time*time_multiplier,
               when: "absolute"
-            }).center(
+            }).move(
               300,
               window_center.y - 5*mrna_size.h
             ).opacity(1);
@@ -267,7 +231,7 @@ for (const firing of firings) {
               duration: duration,
               delay: time*time_multiplier,
               when: "absolute"
-            }).center(
+            }).move(
               300,
               window_center.y - 4*mrna_size.h
             ).opacity(1);
@@ -292,21 +256,23 @@ for (const firing of firings) {
               duration: duration,
               delay: time*time_multiplier,
               when: "absolute"
-            }).center(
+            }).move(
               window_center.x - mrna_size.w/2,
-              window_center.y - 2*mrna_size.h
+              window_center.y - 3*mrna_size.h
             );
 
-            let tc_index = ssu_bonds[mol_1_index].tc;
-            let tc_inst = state[tc_index];
+            let tc_inst = Object.values(inst_1.components["tcsite"].bonds)[0].parent;
+            // - is there a cleaner way to get the molecule bonded to a given component?
+            // - will a component's bonds dictionary ever contain more than one k,v pair at a time?
+            // - not directly related: do molecule instances know anything about their index in full_state? is Molecule.id used for anything?
 
             tc_inst.animator = tc_inst.animator.animate({
               duration: duration,
               delay: time*time_multiplier,
               when: "absolute"
-            }).center(
+            }).move(
               window_center.x - mrna_size.w/2,
-              window_center.y - mrna_size.h
+              window_center.y - 2*mrna_size.h
             );
 
             break;
@@ -329,14 +295,17 @@ for (const firing of firings) {
 
             // ssu and tc: move x to next position along mrna
 
+            let new_bond_comp = inst_2.component_by_id[comp_2_index];
+            // console.log(new_bond_comp.x, new_bond_comp.y);
+            // do components not get their x, y synced correctly?
+
             inst_1.animator = inst_1.animator.animate({
               duration: duration,
               delay: time*time_multiplier,
               when: "absolute"
             }).dx(ribosome_movement);
 
-            let tc_index = ssu_bonds[mol_1_index].tc;
-            let tc_inst = state[tc_index];
+            let tc_inst = Object.values(inst_1.components["tcsite"].bonds)[0].parent;
 
             tc_inst.animator = tc_inst.animator.animate({
               duration: duration,
@@ -359,9 +328,6 @@ for (const firing of firings) {
         // use both DeleteBond and AddBond
         switch(op_name) {
           case "DeleteBond":
-            // for our records
-            ssu_bonds[mol_1_index].tc = undefined;
-
             // tc: opacity 0, move to top edge of screen
 
             inst_2.animator = inst_2.animator.animate({
@@ -372,9 +338,6 @@ for (const firing of firings) {
 
             break;
           case "AddBond":
-            // for our records
-            ssu_bonds[mol_1_index].lsu = mol_2_index;
-
             // lsu: opacity 1, move to where ssu is
 
             // pre-position: x under the ssu, y at bottom edge of screen
@@ -382,7 +345,7 @@ for (const firing of firings) {
               duration: duration,
               delay: time*time_multiplier - slow_duration - duration, // is this okay to do?
               when: "absolute"
-            }).center(
+            }).move(
               window_center.x - mrna_size.w/2 + ssu_movement[mol_1_index],
               2*window_center.y
             );
@@ -397,9 +360,9 @@ for (const firing of firings) {
               duration: slow_duration,
               delay: time*time_multiplier - slow_duration,
               when: "absolute"
-            }).center(
+            }).move(
               window_center.x - mrna_size.w/2 + ssu_movement[mol_1_index],
-              window_center.y + 2*mrna_size.h
+              window_center.y + mrna_size.h
             ).opacity(1);
 
             break;
@@ -427,8 +390,7 @@ for (const firing of firings) {
               when: "absolute"
             }).dx(3*ribosome_movement);
 
-            let lsu_index = ssu_bonds[mol_1_index].lsu;
-            let lsu_inst = state[lsu_index];
+            let lsu_inst = Object.values(inst_1.components["isbi"].bonds)[0].parent;
 
             lsu_inst.animator = lsu_inst.animator.animate({
               duration: duration,
@@ -450,9 +412,6 @@ for (const firing of firings) {
         // use DeleteBond as representative operation
         switch(op_name) {
           case "DeleteBond":
-            // for our records
-            ssu_bonds[mol_1_index].lsu = undefined;
-
             // lsu: opacity 0, move to bottom edge of screen
 
             inst_2.animator = inst_2.animator.animate({
