@@ -188,8 +188,8 @@ export class Component extends Actor {
     }
   }
   sync_svg_location() {
-    this.x = this.current_render.x();
-    this.y = this.current_render.y();
+    this.x = this.parent.group.x() + this.pos[0];
+    this.y = this.parent.group.y() + this.pos[1];
   }
 }
 
