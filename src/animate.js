@@ -1,20 +1,19 @@
-import * as core from "./vis_core.js";
+import * as core from "./core.js";
 
 console.log("starting");
 
 // core system initialization, async
-// let settings = new core.Settings("nika_vis_settings.json", "nika_log.json");
 let settings = new core.Settings("../complex_vis/complex_vis_settings.json", "../complex_vis/complex_log.json");
 // await settings.initialize();
 await settings.parse_settings_file();
 let sys = settings.system;
 
 // load log
-// let log_file = "nika_log.json";
 let log_file = "../complex_vis/complex_log.json";
 let log_obj = await fetch(log_file).then((log) => log.json());
 console.log("done fetching log");
 let firings = log_obj["simulation"]["firings"];
+// let firings = sys.events;
 
 // get molecule types
 let molecule_types = {}; // key: typeID, value: molecule type name
@@ -100,10 +99,12 @@ for (const entry of molecule_array) {
           render.opacity(0); // hide ribosome for now
           break;
       }
-
+      // sync locations 
+      instance.sync_svg_location();
       // initialize animator
       instance.animator = render.animate(1, 0, "absolute");
     }
+    
   }
 }
 

@@ -27,6 +27,8 @@
         [1,100]
       ],
       "ops": [
+        ["StateChange",0,0,1],
+        ["AddBond",45,0,0,1]
       ]
     },
     "firings": [

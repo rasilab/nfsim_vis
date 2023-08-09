@@ -7,6 +7,9 @@ export class Actor {
     this.name = name;
     this.parent = parent;
     this.system = null;
+    this.id = null;
+    this.x = 0;
+    this.y = 0;
   }
   set_parent(parent) {
     this.parent = parent;
@@ -18,6 +21,7 @@ export class Actor {
     Error("Not implemented for template class");
   }
 }
+
 export class MoleculeType {
   constructor(mtype_dict, events_bool) {
     this.dict = mtype_dict;
@@ -47,15 +51,37 @@ export class Molecule extends Actor {
     this.symbol = symbol;
     this.group = null;
     this.animator = null;
+    this.typeID = null;
+    this.component_by_id = {};
+    this.current_component = 0;
+    this.bonds = {};
+  }
+  add_bond(cid, target_tuple, target_component) {
+    this.bonds[target_tuple] = target_component;
+    this.component_by_id[cid].add_bond(target_tuple, target_component);
+  }
+  remove_bond(cid, target_tuple) {
+    if (target_tuple in this.bonds) {
+      delete this.bonds[target_tuple];
+      this.component_by_id[cid].remove_bond(target_tuple);
+      return true;
+    } else {
+      console.log("can't find key: ", target_tuple, " in bonds!");
+      return false
+    }
   }
   add_component(name, component) {
     // component.set_system(this.system);
     // there's something weird about how systems are set
+    component.id = this.current_component;
     this.components[name] = component;
+    this.component_by_id[this.current_component] = component;
+    this.current_component += 1;
   }
   render() {
     if (this.group == null) {
-      this.group = this.system.canvas.group();
+      // this.group = this.system.canvas.group();
+      this.group = this.system.canvas.nested();
     }
     // render molecule
     this.group.use(this.symbol);
@@ -78,6 +104,13 @@ export class Molecule extends Actor {
       this.components[Object.keys(this.components)[i]].print_details();
     }
   }
+  sync_svg_location() {
+    this.x = this.group.x();
+    this.y = this.group.y();
+    for (let i = 0; i < Object.keys(this.components).length; i++) {
+      this.components[Object.keys(this.components)[i]].sync_svg_location();
+    }
+  }
 }
 
 export class Component extends Actor {
@@ -88,6 +121,19 @@ export class Component extends Actor {
     this.curr_state_id = null;
     this.current_render;
     this.pos = pos;
+    this.bonds = {};
+  }
+  add_bond(target_tuple, target_component) {
+    this.bonds[target_tuple] = target_component;
+  }
+  remove_bond(target_tuple) {
+    if (target_tuple in this.bonds) {
+      delete this.bonds[target_tuple];
+      return true;
+    } else {
+      console.log("can't find key: ", target_tuple, " in bonds!");
+      return false
+    }
   }
   add_state(state) {
     state.set_system(this.system);
@@ -141,6 +187,10 @@ export class Component extends Actor {
       this.states[Object.keys(this.states)[i]].print_details();
     }
   }
+  sync_svg_location() {
+    this.x = this.current_render.x();
+    this.y = this.current_render.y();
+  }
 }
 
 export class ComponentState extends Actor {
@@ -186,6 +236,7 @@ export class Rule {
     this.operations = operations;
   }
 }
+
 export class Bonds {
   constructor(bonds_dict) {
     this.dict = bonds_dict;
@@ -244,6 +295,7 @@ export class Bonds {
     }
   }
 }
+
 export class MoleculePattern {
   constructor(molec_dict) {
     this.dict = molec_dict;
@@ -253,6 +305,7 @@ export class MoleculePattern {
     this.components = [];
   }
 }
+
 export class ComponentPattern {
   constructor(comp_dict) {
     this.dict = comp_dict;
@@ -262,6 +315,7 @@ export class ComponentPattern {
     this.bonds = [];
   }
 }
+
 export class Pattern {
   constructor(pat_dict) {
     this.dict = pat_dict;
@@ -373,6 +427,7 @@ export class Pattern {
     return comp_list;
   }
 }
+
 export class RxnSide {
   constructor(dict) {
     this.dict = dict;
@@ -390,26 +445,80 @@ export class RxnSide {
     }
   }
 }
+
 export class Reactants extends RxnSide {
   constructor(dict) {
     super(dict);
     this.side_type = "reactants"
   }
 }
+
 export class Products extends RxnSide {
   constructor(dict) {
     super(dict);
     this.side_type = "products"
   }
 }
+
 export class Operation {
-  constructor(type, args) {
+  constructor(type, args, sys) {
+    this.sys = sys;
     this.type = type;
     this.args = args;
   }
+  apply(state_dict) {
+    switch(this.type) {
+      case "AddBond":
+        let ab_m1_id = this.args[0];
+        let ab_c1_id = this.args[1];
+        let ab_m2_id = this.args[2];
+        let ab_c2_id = this.args[3];
+        state_dict[ab_m1_id].add_bond(ab_c1_id, [ab_m2_id,ab_c2_id], state_dict[ab_m2_id].component_by_id[ab_c2_id]);
+        state_dict[ab_m2_id].add_bond(ab_c2_id, [ab_m1_id,ab_c1_id], state_dict[ab_m1_id].component_by_id[ab_c1_id]);
+        break;
+      case "DeleteBond":
+        let db_m1_id = this.args[0];
+        let db_c1_id = this.args[1];
+        let db_m2_id = this.args[2];
+        let db_c2_id = this.args[3];
+        state_dict[db_m1_id].remove_bond(db_c1_id, [db_m2_id,db_c2_id]);
+        state_dict[db_m2_id].remove_bond(db_c2_id, [db_m1_id,db_c1_id]);
+        break;
+      case "StateChange":
+        let mid = this.args[0];
+        let cid = this.args[1];
+        let new_val = this.args[2];
+        state_dict[mid].component_by_id[cid].set_state_by_id(new_val);
+        break;
+      case "Add":
+        let add_id = this.args[0];
+        let add_type_id = this.args[1];
+        let add_molec = this.sys.add_actor_from_name(this.sys.typeid_to_name[add_type_id]);
+        state_dict[add_id] = add_molec;
+        break;
+      case "Delete":
+        let del_id = this.args[0];
+        delete state_dict[del_id];
+        break;
+      case "ChangeCompartment":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "IncrementState":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "DecrementState":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+      case "DecrementPopulation":
+        console.log("operation type: ", this.type, " is not implemented!");
+        break;
+    }
+  }
 }
+
 export class Operations {
-  constructor(dict) {
+  constructor(dict, sys) {
+    this.sys = sys;
     // 
     this.dict = dict;
     // read the operation
@@ -445,12 +554,13 @@ export class Operations {
             args[this.op_args[j]] = dict[this.ops_types[i]][this.op_args[j]];
           }
         }
-        let correct_op = new Operation(this.ops_types[i], args);
+        let correct_op = new Operation(this.ops_types[i], args, this.sys);
         this.operations.push(correct_op);
       }
     }
   }
 }
+
 export class RateLaw {
   constructor(id, dict) {
     this.id = id;
@@ -485,7 +595,7 @@ export class RateLaw {
 
 // Main system class
 export class System {
-  constructor(canvas, actors, svgs, timeline) {
+  constructor(canvas, actors, svgs, timeline, event_file) {
     this.canvas = canvas;
     this.actors = actors;
     this.actor_definitions = {};
@@ -494,8 +604,16 @@ export class System {
     this.symbols = {};
     this.instances = [];
     this.rules = {};
+    this.event_file = event_file;
+    this.full_state = null;
+    this.typeid_to_name = {}
   }
   async initialize(settings) {
+    if (typeof this.event_file !== 'undefined') {
+      // events file stuff
+      await this.parse_event_file();
+      await this.get_initial_state_array();
+    }
     // we need to load in the SVG strings first
     await this.load_svgs(settings["svgs"]);
     // we now make symbols from each for re-use
@@ -504,6 +622,75 @@ export class System {
     await this.add_actor_definitions(settings);
     // get rules
     await this.add_rules(settings);
+    // add molecules from initial vector
+    await this.get_init_state();
+  }
+  async get_init_state() {
+    this.full_state = {};
+    let molec;
+    for (let i = 0;i<this.initial_molecule_array.length;i++) { 
+      if (this.initial_molecule_array[i]>=0) {
+        molec = this.add_actor_from_name(this.typeid_to_name[this.initial_molecule_array[i]]);
+        this.full_state[i] = molec;
+      }
+    }
+    // now that we have the state, we apply
+    // all the operations to get the true initial state
+    for (let i = 0;i<this.init_ops.length;i++) {
+      this.init_ops[i].apply(this.full_state);
+    }
+  }
+  async parse_event_file() {
+    // fetch settings JSON
+    let event_json = await fetch(this.event_file).then((event) =>
+      event.json()
+    );
+    // store simulation info
+    this.sim_info = event_json['simulation']['info'];
+    // setup molecule types
+    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['simulation']['molecule_types']);
+    // get the initial state map
+    this.initial_state_dict = event_json['simulation']['initialState'];
+    // store events
+    this.events = event_json['simulation']['firings'];
+    // inform that events are initialized
+    console.log("--Events intialized--");
+  }
+  async get_nf_molecule_types(mtype_json) {
+    let nf_mtypes = {};
+    for (let i = 0;i<mtype_json.length;i++) {
+      nf_mtypes[mtype_json[i]['name']] = mtype_json[i];
+    }
+    return nf_mtypes;
+  }
+  async get_initial_state_array() {
+    // we use the finalized molecule types to initialize 
+    // the model state fully
+    // we should have initial state dictionary saved
+    // under attribute this.initial_state_dict
+    let molecule_array = this.initial_state_dict['molecule_array'];
+    let ops = this.initial_state_dict['ops'];
+    // molecule array is a compressed array of full set of
+    // initial molecules
+    let type_id,count;
+    this.initial_molecule_array = [];
+    for (let i = 0; i < molecule_array.length; i++) {
+      // each element is an array of two elements
+      type_id = molecule_array[i][0];
+      count = molecule_array[i][1];
+      // we need to add "count" of "type_id" molecules
+      // to our initial molecule array
+      for (let j = 0; j<count; j++) {
+        this.initial_molecule_array.push(type_id);
+      }
+    }
+    // ops is the full list of operations that needs to be applied
+    // to the initial set of molecules to get the actual initial 
+    // state
+    this.init_ops = []
+    for (let i = 0; i < ops.length; i++) {
+      this.init_ops.push(new Operation(ops[i][0], ops[i].slice(1), this));
+    }
   }
   async add_rules(settings) {
     let model = settings['model']['sbml']['model'];
@@ -521,6 +708,154 @@ export class System {
     let rule         = new Rule(name, reactants, products, ratelaw, ops);
     this.rules[name] = rule;
   }
+  async add_actor_definitions(settings) {
+    if (typeof this.events !== 'undefined') {
+      this._add_actor_defs_event(settings);
+    } else {
+      this._add_actor_defs_non_event(settings);
+    }
+  }
+  async _add_actor_defs_event(settings) {
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
+    for (let i = 0; i < mol_types.length; i++) {
+      // we need to find the same molecule in NFsim definitions
+      // Object.keys(this.svgs)
+      if (mol_types[i]['@id'] in this.nf_molecule_types) {
+        // if we have it in both, we need to consolidate
+        mol_types[i]['typeID'] = this.nf_molecule_types[mol_types[i]['@id']]['typeID'];
+        this.typeid_to_name[mol_types[i]['typeID']] = mol_types[i]['@id'];
+        // we need to ensure component ordering is correct
+        let reorder = false;
+        let component_arr = mol_types[i]["ListOfComponentTypes"]["ComponentType"];
+        let comp_id;
+        for (let k = 0; k < this.nf_molecule_types[mol_types[i]['@id']]['components'].length; k++) {
+          // if length is 1, this is not an array
+          if (this.nf_molecule_types[mol_types[i]['@id']]['components'].length>1) {
+            comp_id = component_arr[k]['@id'];
+          } else {
+            comp_id = component_arr['@id'];
+          }
+          // compare names
+          if (this.nf_molecule_types[mol_types[i]['@id']]['components'][k]!==comp_id) {
+            // this means we have a mismatch and we'll have to reorder
+            reorder = true;
+            // TODO: This skips order checking the component states
+            // for now I'm assuming that, if the ordering of the components
+            // is correct, the states are likely ordered correctly too
+            // this should eventually be remedied UNLESS we determine that
+            // NFsim ordering is preserved, which looks likely. 
+            break;
+          }
+        }
+        // if we must, let's reorder components
+        if (reorder) {
+          // let's record this happening on console, I actually don't expect
+          // this will be relevant since orderings seem to be preseved
+          console.log("Molecule type: ", mol_types[i]['@id'], " has a mismatch with NFsim definition. ");
+          console.log("We will need to reorder the components to ensure correct ordering.\n");
+          let new_component_arr = [];
+          for (let k = 0; k < this.nf_molecule_types[mol_types[i]['@id']]['components'].length; k++) {
+            for (let l = 0; l < component_arr.length; l++) {
+              if (this.nf_molecule_types[mol_types[i]['@id']]['components'][k]!==component_arr[k]['@id']) {
+                // TODO: similar to above TODO, we are assuming states are 
+                // ordered correctly already
+                new_component_arr.push(component_arr[k])
+              }
+            }
+          }
+          // set new array
+          mol_types[i]["ListOfComponentTypes"]["ComponentType"] = new_component_arr;
+        }
+      } else {
+        // if this is not found, we can try to continue without it 
+        // but we should report it at least
+        console.log("can't find: ", mol_types[i]['@id'], " in event file definitions");
+      }
+      // add the definition 
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+    }
+  }
+  async _add_actor_defs_non_event(settings) {
+    let model = settings['model']['sbml']['model'];
+    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
+    for (let i = 0; i < mol_types.length; i++) {
+      mol_types[i]['typeID'] = i;
+      this.typeid_to_name[i] = mol_types[i]['@id'];
+      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+    }
+  }
+  add_actor_from_name(actor_name) {
+    if (typeof this.events !== 'undefined') {
+      return this._add_actor_from_name_event(actor_name);
+    } else {
+      return this._add_actor_from_name_non_event(actor_name);
+    }
+  }
+  _add_actor_from_name_event(actor_name) {
+    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
+    actor.set_system(this);
+    return actor;
+  }
+  _add_actor_from_name_non_event(actor_name) {
+    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
+    actor.set_system(this);
+    return actor;
+  }
+  add_actor(actor) {
+    actor.set_system(this);
+    if (actor.id == null) {
+      this.actors[actor.name] = actor;
+    } else {
+      this.actors[actor.id] = actor;
+    }
+  }
+  _make_actor_from_def_non_event(def) {
+    let molecule = new Molecule(
+      def["@id"],
+      this,
+      {},
+      this.symbols[def["svg_name"]]
+    );
+    if ("typeID" in def) {
+      molecule.typeID = def['typeID'];
+    }
+    if ("ListOfComponentTypes" in def) {
+      let comps = def["ListOfComponentTypes"]['ComponentType'];
+      this.parse_comps(comps, molecule);
+    }
+    return molecule;
+  }
+  // svgs and related methods
+  add_svg(name, svg) {
+    this.svgs[name] = svg;
+  }
+  async load_svgs(svgs) {
+    for (let i = 0; i < svgs.length; i++) {
+      let svg = svgs[i];
+      // check if it's a file
+      if (svg["type"] == "file") {
+        await fetch(svg["path"])
+          .then((resp) => resp.text())
+          .then((str) => this.add_svg(`${svg["name"]}`, str));
+      } else if (svg["type"] == "string") {
+        this.add_svg(`${svg["name"]}`, svg["string"]);
+      } else {
+        Error(`SVG type ${svg["type"]} is not implemented!`);
+      }
+    }
+  }
+  define_symbol(rep_name) {
+    let s = this.canvas.symbol();
+    let def = s.svg(this.svgs[rep_name]);
+    this.symbols[rep_name] = def;
+  }
+  define_symbols() {
+    return Promise.all(
+      Object.keys(this.svgs).map((x) => this.define_symbol(x))
+    );
+  }
+  // parsing stuff 
   async parse_reactants(reactants_dict){
     let reactants = new Reactants(reactants_dict);
     return reactants;
@@ -536,27 +871,11 @@ export class System {
   }
   async parse_ops(opt_dict){
     if (typeof opt_dict !== "undefined") {
-      let ops = new Operations(opt_dict);
+      let ops = new Operations(opt_dict, this);
       return ops.operations; 
     } else {
       setTimeout(parse_ops, 250);
     }
-  }
-  async add_actor_definitions(settings) {
-    let model = settings['model']['sbml']['model'];
-    let mol_types = model['ListOfMoleculeTypes']['MoleculeType'];
-    for (let i = 0; i < mol_types.length; i++) {
-      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
-    }
-  }
-  add_actor_from_name(actor_name) {
-    let actor = this.make_actor_from_def(this.actor_definitions[actor_name]);
-    actor.set_system(this);
-    return actor;
-  }
-  add_actor(actor) {
-    actor.set_system(this);
-    this.actors[actor.name] = actor;
   }
   parse_state(state_dict, component) {
     let name = state_dict["@id"];
@@ -632,48 +951,6 @@ export class System {
       molecule.add_component(component.name, component);
     }
   }
-  make_actor_from_def(def) {
-    let molecule = new Molecule(
-      def["@id"],
-      this,
-      {},
-      this.symbols[def["svg_name"]]
-    );
-    if ("ListOfComponentTypes" in def) {
-      let comps = def["ListOfComponentTypes"]['ComponentType'];
-      this.parse_comps(comps, molecule);
-    }
-    return molecule;
-  }
-  // svgs and related methods
-  add_svg(name, svg) {
-    this.svgs[name] = svg;
-  }
-  async load_svgs(svgs) {
-    for (let i = 0; i < svgs.length; i++) {
-      let svg = svgs[i];
-      // check if it's a file
-      if (svg["type"] == "file") {
-        await fetch(svg["path"])
-          .then((resp) => resp.text())
-          .then((str) => this.add_svg(`${svg["name"]}`, str));
-      } else if (svg["type"] == "string") {
-        this.add_svg(`${svg["name"]}`, svg["string"]);
-      } else {
-        Error(`SVG type ${svg["type"]} is not implemented!`);
-      }
-    }
-  }
-  define_symbol(rep_name) {
-    let s = this.canvas.symbol();
-    let def = s.svg(this.svgs[rep_name]);
-    this.symbols[rep_name] = def;
-  }
-  define_symbols() {
-    return Promise.all(
-      Object.keys(this.svgs).map((x) => this.define_symbol(x))
-    );
-  }
 }
 
 // Main settings class for parsing a setting file
@@ -699,51 +976,15 @@ export class Settings {
       .addTo("body")
       .size(window.innerWidth, window.innerHeight)
       .viewbox(0, 0, w, h);
-    let sys = new System(canvas, {}, {}, timeline);
+    // instantiate system
+    let sys = new System(canvas, {}, {}, timeline, this.event_file);
     // initialize
     await sys.initialize(vis_settings);
     // return initialized system
     console.log("--System intialized--");
     this.system = sys;
   }
-  async parse_event_file() {
-    // check if an event file is given
-    if (this.event_file == null) { 
-      return false;
-    }
-    // fetch settings JSON
-    let event_json = await fetch(this.event_file).then((event) =>
-      event.json()
-    );
-    // store simulation info
-    this.sim_info = event_json['info'];
-    // setup molecule types
-    this.nf_molecule_types = await this.get_nf_molecule_types(event_json['molecule_types']);
-    // get the initial state map
-    this.initial_state_dict = event_json['initialState'];
-    // store events
-    this.events = event_json['firings'];
-    // inform that events are initialized
-    console.log("--Events intialized--");
-  }
-  async get_nf_molecule_types(mtype_json) {
-    let nf_mtypes = {};
-    for (let i = 0;i<mtype_json.length;i++) {
-      nf_mtypes[mtype_json[i]['name']] = mtype_json[i];
-    }
-    return nf_mtypes;
-  }
-  async get_initial_state() {
-    // we use the finalized molecule types to initialize 
-    // the model state fully
-  }
-  async get_molecule_types() {
-    // we use both event file and model if possible
-  }
   async initialize() {
-    await this.parse_event_file();
-    await this.get_complete_molecule_types();
-    await this.get_initial_state();
     await this.parse_settings_file();
   }
 }
