@@ -468,30 +468,43 @@ export class Operation {
     this.sys = sys;
     this.type = type;
     this.args = args;
+    this.mol_1_index = null;
+    this.comp_1_index = null;
+    this.comp_state_index = null;
+    this.mol_2_index = null;
+    this.comp_2_index = null;
+
+    switch(this.type) {
+      case "AddBond":
+      case "DeleteBond":
+        this.mol_1_index = this.args[0];
+        this.comp_1_index = this.args[1];
+        this.mol_2_index = this.args[2];
+        this.comp_2_index = this.args[3];
+        break;
+      
+      case "StateChange":
+        this.mol_1_index = this.args[0];
+        this.comp_1_index = this.args[1];
+        this.comp_state_index = this.args[2];
+        break;
+      
+      default:
+        break;
+    }
   }
   apply(state_dict) {
     switch(this.type) {
       case "AddBond":
-        let ab_m1_id = this.args[0];
-        let ab_c1_id = this.args[1];
-        let ab_m2_id = this.args[2];
-        let ab_c2_id = this.args[3];
-        state_dict[ab_m1_id].add_bond(ab_c1_id, [ab_m2_id,ab_c2_id], state_dict[ab_m2_id].component_by_id[ab_c2_id]);
-        state_dict[ab_m2_id].add_bond(ab_c2_id, [ab_m1_id,ab_c1_id], state_dict[ab_m1_id].component_by_id[ab_c1_id]);
+        state_dict[this.mol_1_index].add_bond(this.comp_1_index, [this.mol_2_index,this.comp_2_index], state_dict[this.mol_2_index].component_by_id[this.comp_2_index]);
+        state_dict[this.mol_2_index].add_bond(this.comp_2_index, [this.mol_1_index,this.comp_1_index], state_dict[this.mol_1_index].component_by_id[this.comp_1_index]);
         break;
       case "DeleteBond":
-        let db_m1_id = this.args[0];
-        let db_c1_id = this.args[1];
-        let db_m2_id = this.args[2];
-        let db_c2_id = this.args[3];
-        state_dict[db_m1_id].remove_bond(db_c1_id, [db_m2_id,db_c2_id]);
-        state_dict[db_m2_id].remove_bond(db_c2_id, [db_m1_id,db_c1_id]);
+        state_dict[this.mol_1_index].remove_bond(this.comp_1_index, [this.mol_2_index,this.comp_2_index]);
+        state_dict[this.mol_2_index].remove_bond(this.comp_2_index, [this.mol_1_index,this.comp_1_index]);
         break;
       case "StateChange":
-        let mid = this.args[0];
-        let cid = this.args[1];
-        let new_val = this.args[2];
-        state_dict[mid].component_by_id[cid].set_state_by_id(new_val);
+        state_dict[this.mol_1_index].component_by_id[this.comp_1_index].set_state_by_id(this.comp_state_index);
         break;
       case "Add":
         let add_id = this.args[0];
