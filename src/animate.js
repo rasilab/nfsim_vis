@@ -75,6 +75,9 @@ for (const instance of Object.values(sys.full_state)) {
       }
       // sync locations 
       instance.sync_svg_location();
+      if (instance.name == "mrna") {
+        console.log(instance);
+      }
       // initialize animator
       instance.animator = render.animate(1, 0, "absolute");
 }
