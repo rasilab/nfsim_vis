@@ -1,7 +1,7 @@
 import * as core from "./core.js";
 
 // core system initialization
-let settings = new core.Settings("../complex_vis/complex_vis_settings.json", "../complex_vis/complex_log.json");
+let settings = new core.Settings("../complex_vis/complex_vis_settings.json", "../complex_vis/complex_log_1000.json");
 await settings.initialize();
 let sys = settings.system;
 let firings = sys.events; // event log
@@ -52,13 +52,13 @@ for (const instance of Object.values(sys.full_state)) {
           break;
         case "ssu":
           if (window_center != undefined && mrna_size != undefined) {
-            render.move(0, window_center.y - 3*mrna_size.h);
+            render.move(0, window_center.y - 3.5*mrna_size.h);
           }
           render.opacity(0);
           break;
         case "tc":
           if (window_center != undefined && mrna_size != undefined) {
-            render.move(0, window_center.y - 2*mrna_size.h);
+            render.move(0, window_center.y - 2.5*mrna_size.h);
           }
           render.opacity(0);
           break;
@@ -76,6 +76,7 @@ for (const instance of Object.values(sys.full_state)) {
       // sync locations 
       instance.sync_svg_location();
       // initialize animator
+      // - this is probably not something that should be left for the user to do
       instance.animator = render.animate(1, 0, "absolute");
 }
 
@@ -113,7 +114,7 @@ for (const firing of firings) {
     // - specifically overlap between events on the same actor, not sure
     // if this is an issue for events on different actors (probaby not?)
     let duration = 1; // 100;
-    let time_multiplier = 500; // 1000;
+    let time_multiplier = 150; // 500, 1000;
 
     let slow_duration = 500; // so that we can see some animations more clearly (when overlap isn't much of a risk)
 
@@ -196,7 +197,7 @@ for (const firing of firings) {
         }).y(y);
       }
     }
-    function animate_opacitychange(molecule, opacity, time, duration) {
+    function animate_opacity(molecule, opacity, time, duration) {
       molecule.animator = molecule.animator.animate({
         duration: duration,
         delay: time,
@@ -218,10 +219,10 @@ for (const firing of firings) {
             // ssu and tc: opacity 1, move together to somewhere around but not at left edge of mrna
 
             animate_move(inst_1, 300, window_center.y - 5*mrna_size.h, time*time_multiplier, duration);
-            animate_opacitychange(inst_1, 1, time*time_multiplier, duration);
+            animate_opacity(inst_1, 1, time*time_multiplier, duration);
 
             animate_move(inst_2, 300, window_center.y - 4*mrna_size.h, time*time_multiplier, duration)
-            animate_opacitychange(inst_2, 1, time*time_multiplier, duration);
+            animate_opacity(inst_2, 1, time*time_multiplier, duration);
 
             break;
           default:
@@ -241,14 +242,14 @@ for (const firing of firings) {
 
             let new_bond_comp = inst_2.component_by_id[operation.comp_2_index];
 
-            animate_move(inst_1, new_bond_comp.x, window_center.y - 3*mrna_size.h, time*time_multiplier, duration);
+            animate_move(inst_1, new_bond_comp.x, window_center.y - 3.5*mrna_size.h, time*time_multiplier, duration);
 
             let tc_inst = Object.values(inst_1.components["tcsite"].bonds)[0].parent;
             // - is there a cleaner way to get the molecule bonded to a given component?
             // - will a component's bonds dictionary ever contain more than one k,v pair at a time?
             // - not directly related: do molecule instances know anything about their index in full_state? is Molecule.id used for anything?
 
-            animate_move(tc_inst, new_bond_comp.x, window_center.y - 2*mrna_size.h, time*time_multiplier, duration);
+            animate_move(tc_inst, new_bond_comp.x, window_center.y - 2.5*mrna_size.h, time*time_multiplier, duration);
 
             break;
           default:
@@ -260,6 +261,12 @@ for (const firing of firings) {
         // - PIC scans from mRNA pos to pos+1
         // StateChange: ssu, terminating, no
         // DeleteBond: ssu, asite, mrna, pos
+        // AddBond: ssu, asite, mrna, pos+1
+      case "scan_from_scan_collision":
+        // this reaction consists of ops: StateChange, DeleteBond, DeleteBond, AddBond
+        // StateChange: ssu, terminating, no
+        // DeleteBond: ssu, asite, mrna, pos
+        // DeleteBond: ssu, hit5, ssu, hit3
         // AddBond: ssu, asite, mrna, pos+1
 
         // use AddBond as representative operation
@@ -298,7 +305,7 @@ for (const firing of firings) {
             // tc: opacity 0, move to top edge of screen
 
             animate_move(inst_2, null, 0, time*time_multiplier, slow_duration);
-            animate_opacitychange(inst_2, 0, time*time_multiplier, slow_duration);
+            animate_opacity(inst_2, 0, time*time_multiplier, slow_duration);
 
             break;
           case "AddBond":
@@ -314,7 +321,10 @@ for (const firing of firings) {
             // they end by the time of the reaction firing. but this brings up some questions about
             // how animation start and end times should be handled in general.
             animate_move(inst_2, null, window_center.y + mrna_size.h, time*time_multiplier - slow_duration, slow_duration);
-            animate_opacitychange(inst_2, 1, time*time_multiplier - slow_duration, slow_duration);
+            animate_opacity(inst_2, 1, time*time_multiplier - slow_duration, slow_duration);
+
+            // move ssu down slightly now that tc is gone
+            animate_move(inst_1, null, window_center.y - 3*mrna_size.h, time*time_multiplier - duration, duration);
 
             break;
           default:
@@ -357,7 +367,7 @@ for (const firing of firings) {
             // lsu: opacity 0, move to bottom edge of screen
 
             animate_move(inst_2, null, 2*window_center.y, time*time_multiplier, slow_duration);
-            animate_opacitychange(inst_2, 0, time*time_multiplier, slow_duration);
+            animate_opacity(inst_2, 0, time*time_multiplier, slow_duration);
 
             break;
           default:
@@ -376,7 +386,42 @@ for (const firing of firings) {
             // ssu: opacity 0, move to top edge of screen
 
             animate_move(inst_1, null, 0, time*time_multiplier, slow_duration);
-            animate_opacitychange(inst_1, 0, time*time_multiplier, slow_duration);
+            animate_opacity(inst_1, 0, time*time_multiplier, slow_duration);
+
+            break;
+          default:
+            break;
+        }
+        break;
+      case "collide_upon_scanning":
+        // this reaction consists of ops: AddBond
+        // - PIC at pos collides with a scanning or elongating ribosome because its scanning is blocked
+        // AddBond: ssu, hit3, ssu, hit5
+
+        // how to represent this?
+        break;
+      case "scan_terminate_no_hit_tc_ejects":
+        // this reaction consists of ops: DeleteBond, DeleteBond
+        // - scanning ribosome leaves mRNA, PIC must not be hit by a scanning/elongating ribosome, tc ejected
+        // DeleteBond: ssu, asite, mrna, pos
+        // DeleteBond: ssu, tcsite, tc, ssusite
+
+        // handle each of the DeleteBond operations
+        switch(operation.type) {
+          case "DeleteBond":
+            // ssu, tc: opacity 0, move to top edge of screen
+
+            // hardcode which molecule is animated depending on which DeleteBond we're in
+            let molecule;
+            if (inst_2.name == "mrna") {
+              molecule = inst_1; // ssu
+            }
+            else if (inst_2.name == "tc") {
+              molecule = inst_2; // tc
+            }
+
+            animate_move(molecule, null, 0, time*time_multiplier, slow_duration);
+            animate_opacity(molecule, 0, time*time_multiplier, slow_duration);
 
             break;
           default:
