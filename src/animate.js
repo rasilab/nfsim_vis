@@ -92,6 +92,59 @@ for (const firing of firings) {
   let time = props[2];
   let ops = firing["ops"];
 
+  // todo:
+  // - loop over & copy operations into a new list
+  // - when deletebond & addbond act on the same 2 molecules, replace these with a movebond operation
+
+  // issue: need to distinguish between cases (1) and (2) of DeleteBond
+  // 1) molecule(s) involved no longer have any bonds and should leave screen
+  // 2) molecule(s) involved still have >0 bonds and should stay where they are
+  // so, before animations are scheduled, there needs to be a way to check
+  // whether any bonds remain after all operations have been applied (since,
+  // for example, a firing could contain a DeleteBond followed by an AddBond)
+  // and this might require some setup here
+
+  /*
+  // option 1: make a copy of full_state and apply all operations to it
+  let full_state_copy = structuredClone(sys.full_state);
+  // using the JS function structuredClone() for creating a deep copy of an object
+  // - Uncaught DOMException: Failed to execute 'structuredClone'
+  //   on 'Window': SVGSVGElement object could not be cloned.
+  // - I don't know if there's a straightforward way of making a deep copy here.
+  //   seems like functions (in addition to SVGs, apparently) are not something
+  //   that can be cloned by structuredClone(), which presents an issue because we
+  //   need access to Molecule.add_bond()/remove_bond(), etc. in operation.apply().
+  //   I couldn't find any other built-in deep copy utilities that seem any better.
+  for (const op of ops) {
+    let operation = new core.Operation(op[0], op.slice(1), sys);
+    operation.apply(full_state_copy);
+  }
+  */
+
+  /*
+  // option 2: reorder operations to put AddBond before DeleteBond (no other changes)
+  function compareOps(a, b) {
+    if (a[0] == "AddBond" && b[0] == "DeleteBond") {
+      return -1;
+    } else if (a[0] == "DeleteBond" && b[0] == "AddBond") {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  ops.sort(compareOps);
+  // this is making recycle & scan_terminate_no_hit_tc_ejects reactions
+  // fail to apply DeleteBond operation. specifically, seems like the mrna
+  // molecule (maybe its components also, but it fails before that is attempted)
+  // can't find the target tuple key. my theory as to why this is happening:
+  // - these 2 reactions involve mrna trying to delete from its bonds dictionary a
+  //   tuple (key) which is now being deleted in a previous reaction (eg. elongate)
+  // - this key is deleted in a previous reaction that includes both a DeleteBond
+  //   and an AddBond which act on the same non-mrna molecule & component (ie. have
+  //   the same target tuple) and are re-ordered so DeleteBond comes after AddBond,
+  //   deleting that tuple from the mrna's bonds dictionary right after it is added
+  */
+
   for (const op of ops) {
     // parse and apply operation
     let operation = new core.Operation(op[0], op.slice(1), sys);
@@ -112,7 +165,6 @@ for (const firing of firings) {
 
     // where does it make sense to set opacity of actors?
     
-    // todo:
     // figure out how exactly to handle timing to make animation smooth
     // while also avoiding overlap between the end of one event and the
     // beginning of the next (depends on duration & spacing of firings)
@@ -122,9 +174,6 @@ for (const firing of firings) {
     let time_multiplier = 150; // 500, 1000;
 
     let slow_duration = 500; // so that we can see some animations more clearly (when overlap isn't much of a risk)
-
-    // the following code relies on assumptions about indices as well as
-    // relationships between reactions, operations, and desired animations
 
     // get generic reaction name (can probably make this better)
     // - order is important here (prefixes)
@@ -171,9 +220,136 @@ for (const firing of firings) {
     else if (reaction_name.startsWith("elong_preterm_no_hit")) reaction_name = "elong_preterm_no_hit";
     // is this the full set of reactions to consider?
 
-    // todo: in order to generalize to operation type, need to figure out what to do
-    // about DeleteBond operations that shouldn't result in molecules leaving off-screen
+    switch(operation.type) {
+      // todo: handle movebond
+      // - no opacity changes (both molecules should already have the desired opacity)
+      // - call recursive_animate_move() as in addbond (is anything different?)
 
+      case "AddBond":
+        // todo: generalize opacity changes
+        // - make molecules visible only upon binding to a molecule that is fixed / connected to fixed
+        // - keep track of opacity like x,y in full_state
+
+        let mol_1_fixed = fixed_molecules.has(String(operation.mol_1_index));
+        let mol_2_fixed = fixed_molecules.has(String(operation.mol_2_index));
+        
+        if (mol_1_fixed && !mol_2_fixed) {
+          recursive_animate_move(
+            inst_2.component_by_id[operation.comp_2_index],
+            inst_1.component_by_id[operation.comp_1_index],
+            time*time_multiplier,
+            duration
+          );
+        } else if (!mol_1_fixed && mol_2_fixed) {
+          recursive_animate_move(
+            inst_1.component_by_id[operation.comp_1_index],
+            inst_2.component_by_id[operation.comp_2_index],
+            time*time_multiplier,
+            duration
+          );
+        } else if (!mol_1_fixed && !mol_2_fixed) {
+          // todo: if neither is fixed, check if one is connected to a fixed molecule and use that as the fixed one
+          // - implement everything needed to keep track of this
+          // - think about cases where both are connected to a fixed molecule (eg. collide_upon_scanning)
+
+          // move inst_1 according to reaction
+          if (reaction_name == "tc_free_ssu_binding") {
+            // move to hardcoded position
+            animate_move(
+              inst_1,
+              300,
+              window_center.y - 5*mrna_size.h,
+              time*time_multiplier,
+              duration
+            );
+          }
+          else if (reaction_name == "scan_to_elongate") {
+            // no need to move
+          }
+          
+          // treat inst_1 as fixed and move inst_2 to match up with it
+          recursive_animate_move(
+            inst_2.component_by_id[operation.comp_2_index],
+            inst_1.component_by_id[operation.comp_1_index],
+            time*time_multiplier,
+            duration
+          );
+        } else {
+          // if both are fixed..? do nothing, I guess?
+        }
+
+        if (reaction_name == "tc_free_ssu_binding") {
+          // ssu, tc
+          animate_opacity(
+            inst_1,
+            1,
+            time*time_multiplier,
+            duration
+          );
+          animate_opacity(
+            inst_2,
+            1,
+            time*time_multiplier,
+            duration
+          );
+        }
+        else if (reaction_name == "scan_to_elongate") {
+          // lsu
+          animate_opacity(
+            inst_2,
+            1,
+            time*time_multiplier,
+            duration
+          );
+        }
+
+        // note: custom animations for smoothing scan_to_elongate have been removed
+
+        break;
+      case "DeleteBond":
+
+        // molecules involved in DeleteBond
+        let molecules = [
+          [operation.mol_1_index, inst_1],
+          [operation.mol_2_index, inst_2]
+        ];
+
+        // filter out molecules which should be kept fixed
+        molecules = molecules.filter((element) => !(fixed_molecules.has(String(element[0]))));
+
+        // filter out molecules which still have bonds
+        molecules = molecules.filter((element) => Object.keys(element[1].bonds).length == 0);
+        
+        // for the remaining molecules (not fixed & no bonds left), schedule animations to leave screen
+        for (const element of molecules) {
+          let mol_inst = element[1];
+
+          animate_move_off_screen(
+            mol_inst,
+            time*time_multiplier,
+            slow_duration
+          );
+          animate_opacity(
+            mol_inst,
+            0,
+            time*time_multiplier,
+            slow_duration
+          );
+        }
+
+        // right now this checks only whether bonds remain after the current operation
+        // has been applied, not whether bonds remain at the end of the entire firing;
+        // this approach seems to work here but probably has issues in the general case
+        // (in scan, elongate, etc. the ssu is always bound to tc/lsu in addition to the
+        // mrna, so the DeleteBond between ssu & mrna will not cause the ssu to leave)
+        // - is this fully addressed by separate handling of movebond?
+        
+        break;
+      default:
+        break;
+    }
+
+    // can get rid of this block when no longer needed
     // ideally would not need to know/use reaction name
     switch(reaction_name) {
       // note: this is not complete by any means. also need to double check my interpretations of operations.
@@ -181,25 +357,6 @@ for (const firing of firings) {
         // this reaction consists of ops: AddBond
         // - tc binds to an ssu (not on mRNA) not bound by a large subunit; this is required for cap binding
         // AddBond: ssu, tcsite, tc, ssusite
-
-        // use AddBond as representative operation
-        switch(operation.type) {
-          case "AddBond":
-            // ssu and tc: opacity 1, move together to somewhere around but not at left edge of mrna
-
-            animate_opacity(
-              inst_1,
-              1,
-              time*time_multiplier,
-              duration
-            );
-            animate_opacity(
-              inst_2,
-              1,
-              time*time_multiplier,
-              duration
-            );
-          }
       case "bind_cap_pic":
         // this reaction consists of ops: AddBond, StateChange
         // - PIC binds to mRNA and blocks subsequent PICs from binding by blocking the 5' end
@@ -222,98 +379,12 @@ for (const firing of firings) {
         // - 80S moves from mRNA pos to pos+3
         // DeleteBond: ssu, asite, mrna, pos
         // AddBond: ssu, asite, mrna, pos+3
-
-        // use AddBond as representative operation
-        switch(operation.type) {
-          case "AddBond":
-            
-            let mol_1_fixed = fixed_molecules.has(String(operation.mol_1_index));
-            let mol_2_fixed = fixed_molecules.has(String(operation.mol_2_index));
-            
-            if (mol_1_fixed && !mol_2_fixed) {
-              recursive_animate_move(
-                inst_2.component_by_id[operation.comp_2_index],
-                inst_1.component_by_id[operation.comp_1_index],
-                time*time_multiplier,
-                duration
-              );
-            } else if (!mol_1_fixed && mol_2_fixed) {
-              recursive_animate_move(
-                inst_1.component_by_id[operation.comp_1_index],
-                inst_2.component_by_id[operation.comp_2_index],
-                time*time_multiplier,
-                duration
-              );
-            } else if (!mol_1_fixed && !mol_2_fixed) {
-              // if neither are fixed..
-              // current behavior: move inst_1 to a default position, then treat it as fixed and move inst_2 to match up with it
-              animate_move(
-                inst_1,
-                300,
-                window_center.y - 5*mrna_size.h,
-                time*time_multiplier,
-                duration
-              );
-              recursive_animate_move(
-                inst_2.component_by_id[operation.comp_2_index],
-                inst_1.component_by_id[operation.comp_1_index],
-                time*time_multiplier,
-                duration
-              );
-            } else {
-              // if both are fixed..?
-            }
-            
-            break;
-          default:
-            break;
-        }
-        break;
       case "scan_to_elongate":
         // this reaction consists of ops: DeleteBond, AddBond
         // - convert scanning ribosomes at pos to elongating ribosomes at newpos
         // - not actually seeing or accounting for position change right now. how does that work?
         // DeleteBond: ssu, tcsite, tc, ssusite
         // AddBond: ssu, isbi, lsu, isbi
-
-        // use both DeleteBond and AddBond
-        switch(operation.type) {
-          case "AddBond":
-            // lsu: opacity 1, move to where ssu is
-
-            // pre-position: x under the ssu, y at bottom edge of screen
-            animate_move(
-              inst_2,
-              inst_1.x,
-              2*window_center.y,
-              time*time_multiplier - slow_duration - duration,
-              duration
-            );
-
-            // move y to just under mrna
-            // - this is tricky. not sure if it's possible to make the animation
-            // visible/smooth without causing misalignment between the ssu and lsu
-            // - currently handling this by scheduling longer-duration animations earlier, so that
-            // they end by the time of the reaction firing. but this brings up some questions about
-            // how animation start and end times should be handled in general.
-            animate_move(
-              inst_2,
-              null,
-              get_next_y(inst_2.components["isbi"], inst_1.components["isbi"]),
-              time*time_multiplier - slow_duration,
-              slow_duration
-            );
-            animate_opacity(
-              inst_2,
-              1,
-              time*time_multiplier - slow_duration,
-              slow_duration
-            );
-
-            break;
-          case "DeleteBond":
-            // tc: opacity 0, move to top edge of screen
-        }
       case "terminate":
         // this reaction consists of ops: StateChange, DeleteBond
         // - terminate at pos by leaving of the large subunit
@@ -329,61 +400,6 @@ for (const firing of firings) {
         // - scanning ribosome leaves mRNA, PIC must not be hit by a scanning/elongating ribosome, tc ejected
         // DeleteBond: ssu, asite, mrna, pos
         // DeleteBond: ssu, tcsite, tc, ssusite
-
-        // use DeleteBond as representative operation
-        switch(operation.type) {
-          case "DeleteBond":
-            
-            let mol_1_fixed = fixed_molecules.has(String(operation.mol_1_index));
-            let mol_2_fixed = fixed_molecules.has(String(operation.mol_2_index));
-            
-            if (mol_1_fixed && !mol_2_fixed) {
-              animate_move_off_screen(
-                inst_2,
-                time*time_multiplier,
-                slow_duration
-              );
-              animate_opacity(
-                inst_2,
-                0,
-                time*time_multiplier,
-                slow_duration
-              );
-            } else if (!mol_1_fixed && mol_2_fixed) {
-              animate_move_off_screen(
-                inst_1,
-                time*time_multiplier,
-                slow_duration
-              );
-              animate_opacity(
-                inst_1,
-                0,
-                time*time_multiplier,
-                slow_duration
-              );
-            } else if (!mol_1_fixed && !mol_2_fixed) {
-              // if neither are fixed..
-              // current behavior: use inst_2
-              animate_move_off_screen(
-                inst_2,
-                time*time_multiplier,
-                slow_duration
-              );
-              animate_opacity(
-                inst_2,
-                0,
-                time*time_multiplier,
-                slow_duration
-              );
-            } else {
-              // if both are fixed..?
-            }
-            
-            break;
-          default:
-            break;
-        }
-        break;
       case "collide_upon_scanning":
         // this reaction consists of ops: AddBond
         // - PIC at pos collides with a scanning or elongating ribosome because its scanning is blocked
