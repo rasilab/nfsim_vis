@@ -1,514 +1,305 @@
 import * as core from "./core.js";
 
-// core system initialization
+// --- initialization ---
+// requires: settings JSON file, events JSON file
 let settings = new core.Settings("../complex_vis/complex_vis_settings.json", "../complex_vis/complex_log_1000.json");
 await settings.initialize();
 let sys = settings.system;
-let firings = sys.events; // event log
+let firings = sys.events; // object taken directly from events JSON file
 
-// some info for positioning things
+// --- initial rendering ---
 let window_center;
 let mrna_size = {w: 6000, h: 200};
-// this needs to not be hardcoded, but there seems to be something weird about getting width/height of a nested group
+// todo: this needs to not be hardcoded, but there seems to be something weird about getting width/height of a nested group
 // which seems especially annoying if we want to move things by their upper left corners (in the interest of consistency)
 
-let fixed_molecules = new Set(); // ids of all molecules which should not move in animation
-
-// initial rendering
-for (const mol_id of Object.keys(sys.full_state)) {
-  let mol_instance = sys.full_state[mol_id];
-  // first find and process mrna
-  if (mol_instance.name == "mrna") {
-    let mrna_positions = Object.keys(mol_instance.components).slice(1);
-    for (let i = 0; i<mrna_positions.length; i++) {
-      // spread out nt component positions
-      let component = mol_instance.components[mrna_positions[i]];
-      component.pos[0] += (mrna_size.w / mrna_positions.length) * i;
-    }
-
-    fixed_molecules.add(mol_id);
-  }
-}
+// loop over all molecules in full_state to set up initial rendering
+// - full_state: dictionary
+// -- key: molecule index/id
+// -- value: instance of core.Molecule
 for (const instance of Object.values(sys.full_state)) {
-      let render = instance.render();
-      
-      // now set up initial appearance for all molecules
-      // - mrna: opacity 1; x,y centered in window
-      // - ribosomes: opacity 0; x at left edge; y above mrna
+      let render;
       switch(instance.name) {
+        // mrna: requires pre-processing, needs to be positioned & visible
         case "mrna":
-          // load info for positioning here (using render) - maybe this can be done a better way
-          window_center = render.point(window.innerWidth/2, window.innerHeight/2);
+          // loop over nt components to spread them out evenly
+          let mrna_positions = Object.keys(instance.components).slice(1);
+          for (let i = 0; i<mrna_positions.length; i++) {
+            // update x position of each nt component
+            let component = instance.components[mrna_positions[i]];
+            component.pos[0] += (mrna_size.w / mrna_positions.length) * i;
+          }
 
+          // designate mrna as a fixed molecule (its position will not change)
+          instance.set_fixed();
+
+          // generate render
+          render = instance.render();
+
+          // load info for positioning in coordinate system of render (this could maybe be done a better way)
+          window_center = render.point(window.innerWidth/2, window.innerHeight/2);
           // console.log(render.width(), render.height()); // result: 0, 0
 
+          // position mrna at center of window
           render.move(
             window_center.x - mrna_size.w/2,
             window_center.y - mrna_size.h/2
-          ); // place mrna
-          break;
+          );
 
-        // the following might be unnecessary if these are moved later anyway
-        case "lsu":
-          if (window_center != undefined && mrna_size != undefined) {
-            render.move(0, window_center.y + mrna_size.h);
-          }
-          render.opacity(0);
           break;
-        case "ssu":
-          if (window_center != undefined && mrna_size != undefined) {
-            render.move(0, window_center.y - 3.5*mrna_size.h);
-          }
+        // all other molecules: not positioned & not visible
+        default:
+          render = instance.render();
           render.opacity(0);
-          break;
-        case "tc":
-          if (window_center != undefined && mrna_size != undefined) {
-            render.move(0, window_center.y - 2.5*mrna_size.h);
-          }
-          render.opacity(0);
-          break;
-
-        case "ribosome": // for basic model
-          if (window_center != undefined && mrna_size != undefined) {
-            render.center(0, window_center.y - 2*mrna_size.h); // place ribosome
-            // todo: maybe figure out a better / more logical y position
-            // - currently all positioning calculations are done based on
-            // the size of mrna svg alone, ribosome svg is not considered
-          }
-          render.opacity(0); // hide ribosome for now
           break;
       }
-      // sync locations 
+
+      // sync internal representations of location & opacity to current attributes of render
+      // - internal representations must be stored & must be updated as animations
+      //   are scheduled, since the attributes of the actual render will change as
+      //   the animation plays (ie. will not be current at the point of scheduling)
+      // - we sync this information here before starting to schedule animations
       instance.sync_svg_location();
+      instance.sync_opacity();
+
       // initialize animator
-      // - this is probably not something that should be left for the user to do
+      // todo: this should probably not be exposed here, try to move into core
       instance.animator = render.animate(1, 0, "absolute");
 }
 
-// iterate over firings and schedule animations
+// --- animation scheduling ---
+// loop over firings to schedule corresponding animations
+// current framework:
+// - molecules can be fixed (permanent), fixed through bonds (temporary), or not fixed in any way
+// - molecules are only visible (opacity 1) when fixed / fixed through bonds
+// - operations handled:
+// -- DeleteBond:
+// --- animation only occurs when a molecule loses fixed through bonds status
+// --- animation: move (to top/bottom edge of window) & opacity change (to 0)
+// -- AddBond:
+// --- animation only occurs when a molecule that is not fixed binds to a molecule
+//     that is fixed / fixed through bonds & thus gains fixed through bonds status
+// --- animation: move (to align with "fixed" molecule) & opacity change (to 1)
+// -- "MoveBond":
+// --- represents/replaces pair of DeleteBond & AddBond which operate on the same 2 molecules
+// --- handles case where DeleteBond should not be animated (because the molecules involved
+//     will still be fixed through bonds after all operations in the firing have been applied)
+//     and AddBond should be animated with move but not opacity change (...)
+// -- StateChange:
+// --- ...
 for (const firing of firings) {
   let props = firing["props"];
-  let reaction_name = props[0];
+  // let reaction_name = props[0];
   let time = props[2];
-  let ops = firing["ops"];
+  let ops = firing["ops"]; // list of operations in firing
 
-  // todo:
-  // - loop over & copy operations into a new list
-  // - when deletebond & addbond act on the same 2 molecules, replace these with a movebond operation
-
-  // issue: need to distinguish between cases (1) and (2) of DeleteBond
-  // 1) molecule(s) involved no longer have any bonds and should leave screen
-  // 2) molecule(s) involved still have >0 bonds and should stay where they are
-  // so, before animations are scheduled, there needs to be a way to check
-  // whether any bonds remain after all operations have been applied (since,
-  // for example, a firing could contain a DeleteBond followed by an AddBond)
-  // and this might require some setup here
-
-  /*
-  // option 1: make a copy of full_state and apply all operations to it
-  let full_state_copy = structuredClone(sys.full_state);
-  // using the JS function structuredClone() for creating a deep copy of an object
-  // - Uncaught DOMException: Failed to execute 'structuredClone'
-  //   on 'Window': SVGSVGElement object could not be cloned.
-  // - I don't know if there's a straightforward way of making a deep copy here.
-  //   seems like functions (in addition to SVGs, apparently) are not something
-  //   that can be cloned by structuredClone(), which presents an issue because we
-  //   need access to Molecule.add_bond()/remove_bond(), etc. in operation.apply().
-  //   I couldn't find any other built-in deep copy utilities that seem any better.
-  for (const op of ops) {
-    let operation = new core.Operation(op[0], op.slice(1), sys);
-    operation.apply(full_state_copy);
-  }
-  */
-
-  /*
-  // option 2: reorder operations to put AddBond before DeleteBond (no other changes)
-  function compareOps(a, b) {
-    if (a[0] == "AddBond" && b[0] == "DeleteBond") {
-      return -1;
-    } else if (a[0] == "DeleteBond" && b[0] == "AddBond") {
-      return 1;
-    } else {
-      return 0;
+  // create a copy of the operation list w/ MoveBond replacements as needed
+  // - this for loop currently only catches the case where DeleteBond is followed
+  //   immediately by a corresponding AddBond; doesn't correctly handle reactions
+  //   such as scan_from_scan_collision where there's another operation in between
+  // - what amounts/orderings of operations (in one firing) should this be able to handle?
+  let modified_op_list = [];
+  for (let i = 0; i < ops.length; i++) {
+    if (ops[i][0] == "DeleteBond") {
+      if (i < ops.length - 1 && ops[i+1][0] == "AddBond") {
+        if (ops[i][1] == ops[i+1][1] && ops[i][3] == ops[i+1][3]) {
+          modified_op_list.push(["MoveBond"].concat(ops[i+1].slice(1)));
+          i++;
+          continue;
+        }
+      }
     }
+    modified_op_list.push(ops[i]);
   }
-  ops.sort(compareOps);
-  // this is making recycle & scan_terminate_no_hit_tc_ejects reactions
-  // fail to apply DeleteBond operation. specifically, seems like the mrna
-  // molecule (maybe its components also, but it fails before that is attempted)
-  // can't find the target tuple key. my theory as to why this is happening:
-  // - these 2 reactions involve mrna trying to delete from its bonds dictionary a
-  //   tuple (key) which is now being deleted in a previous reaction (eg. elongate)
-  // - this key is deleted in a previous reaction that includes both a DeleteBond
-  //   and an AddBond which act on the same non-mrna molecule & component (ie. have
-  //   the same target tuple) and are re-ordered so DeleteBond comes after AddBond,
-  //   deleting that tuple from the mrna's bonds dictionary right after it is added
-  */
 
   for (const op of ops) {
-    // parse and apply operation
+    // parse operation
     let operation = new core.Operation(op[0], op.slice(1), sys);
-    operation.apply(sys.full_state);
-    // are there any scenarios in which it would be useful to know the previous state?
+    
+    // todo: handle MoveBond
+    // - currently cannot be parsed & applied the same way as a regular operation
 
-    // schedule corresponding animation
+    // store any useful information about the previous state (before operation is applied)
+    let previous_state_info = {};
 
     let inst_1;
     let inst_2;
 
+    // todo: write comment explaining why this is here (addbond/deletebond issue)
+    // - if this isn't recorded here but rather checked after the operation has been applied,
+    //   it will for example be the same for both molecules involved in addbond
     if (operation.mol_1_index != null) {
       inst_1 = sys.full_state[operation.mol_1_index];
+
+      previous_state_info.mol_1_fixed_through_bonds = inst_1.is_fixed_through_bonds();
     }
     if (operation.mol_2_index != null) {
       inst_2 = sys.full_state[operation.mol_2_index];
+
+      previous_state_info.mol_2_fixed_through_bonds = inst_2.is_fixed_through_bonds();
     }
 
-    // where does it make sense to set opacity of actors?
+    // apply operation
+    operation.apply(sys.full_state);
     
-    // figure out how exactly to handle timing to make animation smooth
-    // while also avoiding overlap between the end of one event and the
-    // beginning of the next (depends on duration & spacing of firings)
-    // - specifically overlap between events on the same actor, not sure
-    // if this is an issue for events on different actors (probaby not?)
-    let duration = 1; // 100;
-    let time_multiplier = 150; // 500, 1000;
+    // there is a tradeoff between smoothness and accuracy of the animation;
+    // longer durations (ie. smoother animations) can (depending on spacing
+    // of firings) create overlap between events involving the same actor &
+    // cause animations to be cut short, which leads to misaligned molecules
+    let duration = 1;
+    let time_multiplier = 150;
+    let slow_duration = 500; // used when overlap of events is not much of a risk
+    // these settings provide a decently accurate (though very jumpy) animation
 
-    let slow_duration = 500; // so that we can see some animations more clearly (when overlap isn't much of a risk)
+    // note: custom animations for smoothing scan_to_elongate have been removed
 
-    // get generic reaction name (can probably make this better)
-    // - order is important here (prefixes)
-    if (reaction_name.startsWith("bind_cap_pic")) reaction_name = "bind_cap_pic";
-    else if (reaction_name.startsWith("scan_from_scan_collision")) reaction_name = "scan_from_scan_collision";
-    else if (reaction_name.startsWith("scan_from_elongation_collision")) reaction_name = "scan_from_elongation_collision";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_elongating_elongating_tc_ejects")) reaction_name = "scan_terminate_from_collision_both_hit_elongating_elongating_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_elongating_scanning_tc_ejects")) reaction_name = "scan_terminate_from_collision_both_hit_elongating_scanning_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_scanning_elongating_tc_ejects")) reaction_name = "scan_terminate_from_collision_both_hit_scanning_elongating_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_scanning_scanning_tc_ejects")) reaction_name = "scan_terminate_from_collision_both_hit_scanning_scanning_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_elongating_elongating")) reaction_name = "scan_terminate_from_collision_both_hit_elongating_elongating";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_elongating_scanning")) reaction_name = "scan_terminate_from_collision_both_hit_elongating_scanning";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_scanning_elongating")) reaction_name = "scan_terminate_from_collision_both_hit_scanning_elongating";
-    else if (reaction_name.startsWith("scan_terminate_from_collision_both_hit_scanning_scanning")) reaction_name = "scan_terminate_from_collision_both_hit_scanning_scanning";
-    else if (reaction_name.startsWith("scan_terminate_no_hit_tc_ejects")) reaction_name = "scan_terminate_no_hit_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_no_hit")) reaction_name = "scan_terminate_no_hit";
-    else if (reaction_name.startsWith("scan_terminate_from_elongation_collision_5_hit_tc_ejects")) reaction_name = "scan_terminate_from_elongation_collision_5_hit_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_elongation_collision_5_hit")) reaction_name = "scan_terminate_from_elongation_collision_5_hit";
-    else if (reaction_name.startsWith("scan_terminate_from_scan_collision_5_hit_tc_ejects")) reaction_name = "scan_terminate_from_scan_collision_5_hit_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_scan_collision_5_hit")) reaction_name = "scan_terminate_from_scan_collision_5_hit";
-    else if (reaction_name.startsWith("scan_terminate_from_elongation_collision_3_hit_tc_ejects")) reaction_name = "scan_terminate_from_elongation_collision_3_hit_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_elongation_collision_3_hit")) reaction_name = "scan_terminate_from_elongation_collision_3_hit";
-    else if (reaction_name.startsWith("scan_terminate_from_scan_collision_3_hit_tc_ejects")) reaction_name = "scan_terminate_from_scan_collision_3_hit_tc_ejects";
-    else if (reaction_name.startsWith("scan_terminate_from_scan_collision_3_hit")) reaction_name = "scan_terminate_from_scan_collision_3_hit";
-    else if (reaction_name.startsWith("backward_scan_from_scan_collision")) reaction_name = "backward_scan_from_scan_collision";
-    else if (reaction_name.startsWith("backward_scan_from_elongation_collision")) reaction_name = "backward_scan_from_elongation_collision";
-    else if (reaction_name.startsWith("backward_scan")) reaction_name = "backward_scan";
-    else if (reaction_name.startsWith("scan_to_elongate_from_leading_collision")) reaction_name = "scan_to_elongate_from_leading_collision";
-    else if (reaction_name.startsWith("scan_to_elongate_from_trailing_scan_collision")) reaction_name = "scan_to_elongate_from_trailing_scan_collision";
-    else if (reaction_name.startsWith("scan_to_elongate_from_trailing_elongation_collision")) reaction_name = "scan_to_elongate_from_trailing_elongation_collision";
-    else if (reaction_name.startsWith("scan_to_elongate")) reaction_name = "scan_to_elongate";
-    else if (reaction_name.startsWith("scan")) reaction_name = "scan";    
-    else if (reaction_name.startsWith("elongate_from_scan_collision")) reaction_name = "elongate_from_scan_collision";
-    else if (reaction_name.startsWith("elongate_from_elongation_collision")) reaction_name = "elongate_from_elongation_collision";
-    else if (reaction_name.startsWith("elongate")) reaction_name = "elongate";
-    else if (reaction_name.startsWith("terminate")) reaction_name = "terminate";
-    else if (reaction_name.startsWith("recycle_from_leading_collision")) reaction_name = "recycle_from_leading_collision";
-    else if (reaction_name.startsWith("recycle_from_trailing_collision")) reaction_name = "recycle_from_trailing_collision";
-    else if (reaction_name.startsWith("recycle_from_both_collision")) reaction_name = "recycle_from_both_collision";
-    else if (reaction_name.startsWith("recycle")) reaction_name = "recycle";
-    else if (reaction_name.startsWith("collide_upon_scanning")) reaction_name = "collide_upon_scanning";
-    else if (reaction_name.startsWith("collide_upon_elongation")) reaction_name = "collide_upon_elongation";
-    else if (reaction_name.startsWith("collide_upon_backward_scanning")) reaction_name = "collide_upon_backward_scanning";
-    else if (reaction_name.startsWith("elong_preterm_no_hit")) reaction_name = "elong_preterm_no_hit";
-    // is this the full set of reactions to consider?
-
+    // schedule animations based on operation type & relevant info about molecules involved
     switch(operation.type) {
-      // todo: handle movebond
-      // - no opacity changes (both molecules should already have the desired opacity)
-      // - call recursive_animate_move() as in addbond (is anything different?)
-
-      case "AddBond":
-        // todo: generalize opacity changes
-        // - make molecules visible only upon binding to a molecule that is fixed / connected to fixed
-        // - keep track of opacity like x,y in full_state
-
-        let mol_1_fixed = fixed_molecules.has(String(operation.mol_1_index));
-        let mol_2_fixed = fixed_molecules.has(String(operation.mol_2_index));
-        
-        if (mol_1_fixed && !mol_2_fixed) {
-          recursive_animate_move(
-            inst_2.component_by_id[operation.comp_2_index],
-            inst_1.component_by_id[operation.comp_1_index],
-            time*time_multiplier,
-            duration
-          );
-        } else if (!mol_1_fixed && mol_2_fixed) {
-          recursive_animate_move(
-            inst_1.component_by_id[operation.comp_1_index],
-            inst_2.component_by_id[operation.comp_2_index],
-            time*time_multiplier,
-            duration
-          );
-        } else if (!mol_1_fixed && !mol_2_fixed) {
-          // todo: if neither is fixed, check if one is connected to a fixed molecule and use that as the fixed one
-          // - implement everything needed to keep track of this
-          // - think about cases where both are connected to a fixed molecule (eg. collide_upon_scanning)
-
-          // move inst_1 according to reaction
-          if (reaction_name == "tc_free_ssu_binding") {
-            // move to hardcoded position
-            animate_move(
-              inst_1,
-              300,
-              window_center.y - 5*mrna_size.h,
-              time*time_multiplier,
-              duration
-            );
-          }
-          else if (reaction_name == "scan_to_elongate") {
-            // no need to move
-          }
-          
-          // treat inst_1 as fixed and move inst_2 to match up with it
-          recursive_animate_move(
-            inst_2.component_by_id[operation.comp_2_index],
-            inst_1.component_by_id[operation.comp_1_index],
-            time*time_multiplier,
-            duration
-          );
-        } else {
-          // if both are fixed..? do nothing, I guess?
-        }
-
-        if (reaction_name == "tc_free_ssu_binding") {
-          // ssu, tc
-          animate_opacity(
-            inst_1,
-            1,
-            time*time_multiplier,
-            duration
-          );
-          animate_opacity(
-            inst_2,
-            1,
-            time*time_multiplier,
-            duration
-          );
-        }
-        else if (reaction_name == "scan_to_elongate") {
-          // lsu
-          animate_opacity(
-            inst_2,
-            1,
-            time*time_multiplier,
-            duration
-          );
-        }
-
-        // note: custom animations for smoothing scan_to_elongate have been removed
-
-        break;
       case "DeleteBond":
-
-        // molecules involved in DeleteBond
-        let molecules = [
-          [operation.mol_1_index, inst_1],
-          [operation.mol_2_index, inst_2]
-        ];
-
-        // filter out molecules which should be kept fixed
-        molecules = molecules.filter((element) => !(fixed_molecules.has(String(element[0]))));
-
-        // filter out molecules which still have bonds
-        molecules = molecules.filter((element) => Object.keys(element[1].bonds).length == 0);
-        
-        // for the remaining molecules (not fixed & no bonds left), schedule animations to leave screen
-        for (const element of molecules) {
-          let mol_inst = element[1];
-
+        // todo: make animate_move_off_screen() recursive
+        if (previous_state_info.mol_1_fixed_through_bonds && !inst_1.is_fixed_through_bonds()) {
           animate_move_off_screen(
-            mol_inst,
+            inst_1,
             time*time_multiplier,
             slow_duration
           );
           animate_opacity(
-            mol_inst,
+            inst_1,
+            0,
+            time*time_multiplier,
+            slow_duration
+          );
+        } // else if? can both of these be true?
+        if (previous_state_info.mol_2_fixed_through_bonds && !inst_2.is_fixed_through_bonds()) {
+          animate_move_off_screen(
+            inst_2,
+            time*time_multiplier,
+            slow_duration
+          );
+          animate_opacity(
+            inst_2,
             0,
             time*time_multiplier,
             slow_duration
           );
         }
-
-        // right now this checks only whether bonds remain after the current operation
-        // has been applied, not whether bonds remain at the end of the entire firing;
-        // this approach seems to work here but probably has issues in the general case
-        // (in scan, elongate, etc. the ssu is always bound to tc/lsu in addition to the
-        // mrna, so the DeleteBond between ssu & mrna will not cause the ssu to leave)
-        // - is this fully addressed by separate handling of movebond?
-        
+        // right now this checks fixed through bonds status after the current operation
+        // has been applied, not at the end of the entire firing; movebond addresses one
+        // situation where this animation should not be applied, but maybe not all (?)
+        // - what if a molecule is involved in a deletebond & addbond with 2 distinct bond partners?
         break;
-      default:
-        break;
-    }
-
-    // can get rid of this block when no longer needed
-    // ideally would not need to know/use reaction name
-    switch(reaction_name) {
-      // note: this is not complete by any means. also need to double check my interpretations of operations.
-      case "tc_free_ssu_binding":
-        // this reaction consists of ops: AddBond
-        // - tc binds to an ssu (not on mRNA) not bound by a large subunit; this is required for cap binding
-        // AddBond: ssu, tcsite, tc, ssusite
-      case "bind_cap_pic":
-        // this reaction consists of ops: AddBond, StateChange
-        // - PIC binds to mRNA and blocks subsequent PICs from binding by blocking the 5' end
-        // AddBond: ssu, asite, mrna, pos
-        // StateChange: mrna, end5, blocked
-      case "scan":  
-        // this reaction consists of ops: StateChange, DeleteBond, AddBond
-        // - PIC scans from mRNA pos to pos+1
-        // StateChange: ssu, terminating, no
-        // DeleteBond: ssu, asite, mrna, pos
-        // AddBond: ssu, asite, mrna, pos+1
-      case "scan_from_scan_collision":
-        // this reaction consists of ops: StateChange, DeleteBond, DeleteBond, AddBond
-        // StateChange: ssu, terminating, no
-        // DeleteBond: ssu, asite, mrna, pos
-        // DeleteBond: ssu, hit5, ssu, hit3
-        // AddBond: ssu, asite, mrna, pos+1
-      case "elongate":
-        // this reaction consists of ops: DeleteBond, AddBond
-        // - 80S moves from mRNA pos to pos+3
-        // DeleteBond: ssu, asite, mrna, pos
-        // AddBond: ssu, asite, mrna, pos+3
-      case "scan_to_elongate":
-        // this reaction consists of ops: DeleteBond, AddBond
-        // - convert scanning ribosomes at pos to elongating ribosomes at newpos
-        // - not actually seeing or accounting for position change right now. how does that work?
-        // DeleteBond: ssu, tcsite, tc, ssusite
-        // AddBond: ssu, isbi, lsu, isbi
-      case "terminate":
-        // this reaction consists of ops: StateChange, DeleteBond
-        // - terminate at pos by leaving of the large subunit
-        // StateChange: ssu, terminating, yes
-        // DeleteBond: ssu, isbi, lsu, isbi        
-      case "recycle":
-        // this reaction consists of ops: StateChange, DeleteBond
-        // - ssu on mRNA after termination without large subunit is recycled to the free ssu pool
-        // StateChange: ssu, terminating, no
-        // DeleteBond: ssu, asite, mrna, pos
-      case "scan_terminate_no_hit_tc_ejects":
-        // this reaction consists of ops: DeleteBond, DeleteBond
-        // - scanning ribosome leaves mRNA, PIC must not be hit by a scanning/elongating ribosome, tc ejected
-        // DeleteBond: ssu, asite, mrna, pos
-        // DeleteBond: ssu, tcsite, tc, ssusite
-      case "collide_upon_scanning":
-        // this reaction consists of ops: AddBond
-        // - PIC at pos collides with a scanning or elongating ribosome because its scanning is blocked
-        // AddBond: ssu, hit3, ssu, hit5
-
-        // how to represent this?
-        break;
-      default:
-        console.log(reaction_name);
-        break;
-    }
-// below code was for basic model
-/*
-    switch(op_name) {
-      case "StateChange":
-        // are components guaranteed to be ordered in such a way that this works?
-        let component_name = Object.keys(inst_1.components)[comp_1_index];
-        let component = inst_1.components[component_name];
-
-        // animate opacity changes on component state renders
-        // - duration of animation is currently 1 (basically instant), I think this looks cleaner than fading states in/out
-        for (const state of component.states) {
-          let state_render = state.render;
-          if (state.id == comp_state_index) {
-            // set opacity of new state to 1
-            state_render.animate({
-              duration: 1,
-              delay: time*time_multiplier,
-              when: "absolute"
-            }).opacity(1);
-          } else {
-            // set opacity of all other states to 0
-            if (state_render.opacity() != 0) {
-              state_render.animate({
-                duration: 1,
-                delay: time*time_multiplier,
-                when: "absolute"
-              }).opacity(0);
-            }
-          }
-        }
-        // would probably be more efficient to avoid this loop, but I think this would require updating current state
-        // - set opacity to 0 for old state (component.current_state)
-        // - update current state of component to match comp_state_index (component.set_state_by_id(comp_state_index))
-        // - set opacity to 1 for new state (component.current_state)
-        break;
-
-      // AddBond is used as the representative operation for initiate, elongate
       case "AddBond":
-        // AddBond at first position on mrna (initiate)
-        // ribosome animation: opacity to 1; move x to left edge of mrna, move y to above mrna
-        if (mol_2_index == 0 && comp_2_index == 0) {
-          inst_1.animator = inst_1.animator.animate({
-            duration: duration,
-            delay: time*time_multiplier,
-            when: "absolute"
-          }).center(
-            window_center.x - mrna_size.w/2,
-            window_center.y - 2*mrna_size.h
-          ).opacity(1);
+        if (previous_state_info.mol_1_fixed_through_bonds && !previous_state_info.mol_2_fixed_through_bonds) {
+          recursive_opacity(
+            inst_2,
+            1,
+            time*time_multiplier,
+            duration
+          );
+        } else if (!previous_state_info.mol_1_fixed_through_bonds && previous_state_info.mol_2_fixed_through_bonds) {
+          recursive_opacity(
+            inst_1,
+            1,
+            time*time_multiplier,
+            duration
+          );
+        } else {
+          // no animation
         }
-        // AddBond elsewhere (elongate)
-        // ribosome animation: move x to next position along mrna
-        else {
-          inst_1.animator = inst_1.animator.animate({
-            duration: duration,
-            delay: time*time_multiplier,
-            when: "absolute"
-          }).dx(ribosome_movement);
-        }
-        // should maybe use move instead of center (in general, throughout this
-        // whole thing), might match up better with how components are positioned
-        break;
-
-      // DeleteBond is used as the representative operation for terminate
-      // - DeleteBond in elongate reactions is currently ignored
-      case "DeleteBond":
-        // DeleteBond at last position on mrna (terminate)
-        // ribosome animation: opacity to 0; move y to top edge
-        if (mol_2_index == 0 && comp_2_index == mrna_positions.length - 1) {
-          inst_1.animator = inst_1.animator.animate({
-            duration: duration*5, // can be slower than other events
-            delay: time*time_multiplier,
-            when: "absolute"
-          }).dy(-window_center.y).opacity(0);
+      case "MoveBond":
+        if (previous_state_info.mol_1_fixed_through_bonds && !previous_state_info.mol_2_fixed_through_bonds) {
+          recursive_animate_move(
+            inst_2.component_by_id[operation.comp_2_index],
+            inst_1.component_by_id[operation.comp_1_index],
+            time*time_multiplier,
+            duration
+          );
+        } else if (!previous_state_info.mol_1_fixed_through_bonds && previous_state_info.mol_2_fixed_through_bonds) {
+          recursive_animate_move(
+            inst_1.component_by_id[operation.comp_1_index],
+            inst_2.component_by_id[operation.comp_2_index],
+            time*time_multiplier,
+            duration
+          );
+        } else {
+          // no animation
         }
         break;
-      
-        default:
-          break;
+      case "StateChange":
+        // todo: test with a visible component
+        let component = inst_1.component_by_id[operation.comp_1_index];
+        let prev_state = component.get_state_by_id(component.prev_state_id);
+        let curr_state = component.current_state;
+        if (component.prev_state_id != component.curr_state_id) {
+          animate_state_opacity(
+            prev_state,
+            0,
+            time*time_multiplier,
+            duration
+          );
+          animate_state_opacity(
+            curr_state,
+            1,
+            time*time_multiplier,
+            duration
+          );
+        }
+        break;
+      default:
+        break;
     }
-*/
   }
 }
 
-console.log("finished processing firings");
+console.log("--Animation initialized--");
 
-// pause by default
+// --- animation playback ---
+// pause animation by default
 sys.timeline.pause();
-
-// press p to play
+// user can press p to play animation
 document.onkeydown = function (event) {
   if (event.key == "p") {
     sys.timeline.play();
   }
 }
 
+// how exactly should timeline/runners be handled here and controlled by user?
+
+/*
+// allows us to use the buttons even after animation finishes
+// stops SVG.js from removing the timeline after completion
+sys.timeline.persist(true);
+// start stop restart
+let play = sys.canvas.group().use(sys.symbols["play"]);
+play.timeline(sys.timeline);
+play.size(800);
+play.center(500, 50);
+let pause = sys.canvas.group().use(sys.symbols["pause"]);
+pause.timeline(sys.timeline);
+pause.center(1000, -400);
+let restart = sys.canvas.group().use(sys.symbols["stop"]);
+restart.timeline(sys.timeline);
+restart.center(2000, -400);
+// functions
+play.click(function () {
+  this.timeline().play();
+});
+pause.click(function () {
+  this.timeline().pause();
+});
+restart.click(function () {
+  this.timeline().stop();
+});
+
+// Example removal after animation
+ssu_inst_2.animator.after(()=>{
+  ssu_inst_2_grp.remove();
+});
+*/
+
+// --- animation utilities ---
 // todo: put the following block of animation functions somewhere, maybe in a class or something
-// take an array of molecules? some sort of context?
+// todo: improve these (correctness, efficiency, structure)
 
 function animate_move(molecule, x, y, time, duration) {
   // update x,y for molecule and its components, then schedule animation
@@ -551,7 +342,16 @@ function animate_move(molecule, x, y, time, duration) {
 }
 
 function animate_opacity(molecule, opacity, time, duration) {
+  molecule.opacity = opacity;
   molecule.animator = molecule.animator.animate({
+    duration: duration,
+    delay: time,
+    when: "absolute"
+  }).opacity(opacity);
+}
+
+function animate_state_opacity(state, opacity, time, duration) {
+  state.render.animate({
     duration: duration,
     delay: time,
     when: "absolute"
@@ -609,7 +409,7 @@ function recursive_animate_move_util(finished, moving_component, fixed_component
 
   // then schedule animations for all molecules which are bound to (ie. should move with) the given moving molecule
   // - filter out molecules which should be kept fixed
-  let bond_keys = Object.keys(moving_molecule.bonds).filter((tuple) => !(fixed_molecules.has(tuple.split(',')[0])));
+  let bond_keys = Object.keys(moving_molecule.bonds).filter((tuple) => !((sys.full_state[tuple.split(',')[0]]).fixed));
   for (const bond_key of bond_keys) {
     let moving_component = moving_molecule.bonds[bond_key]; // component on a bond partner of previously moving (now fixed) molecule
     let fixed_component = Object.values(moving_component.bonds)[0]; // component on previously moving (now fixed) molecule
@@ -624,6 +424,29 @@ function recursive_animate_move(moving_component, fixed_component, time, duratio
   let finished = new Set();
   finished.add(fixed_component.parent);
   recursive_animate_move_util(finished, moving_component, fixed_component, time, duration);
+}
+
+// todo: check whether this is going through mrna
+function recursive_opacity_util(finished, molecule, opacity, time, duration) {
+  if (molecule.opacity != opacity) {
+    animate_opacity(
+      molecule,
+      opacity,
+      time,
+      duration
+    );
+  }
+  finished.add(molecule);
+  for (const bond_key of Object.keys(molecule.bonds)) {
+    let next_molecule = molecule.bonds[bond_key].parent;
+    if (!finished.has(next_molecule)) {
+      recursive_opacity_util(finished, next_molecule, opacity, time, duration);
+    }
+  }
+}
+function recursive_opacity(molecule, opacity, time, duration) {
+  let finished = new Set();
+  recursive_opacity_util(finished, molecule, opacity, time, duration);
 }
 
 function animate_move_off_screen(molecule, time, duration) {
@@ -644,37 +467,3 @@ function animate_move_off_screen(molecule, time, duration) {
     duration
   );
 }
-
-// how exactly should timeline/runners be handled here and controlled by user?
-
-/*
-// allows us to use the buttons even after animation finishes
-// stops SVG.js from removing the timeline after completion
-sys.timeline.persist(true);
-// start stop restart
-let play = sys.canvas.group().use(sys.symbols["play"]);
-play.timeline(sys.timeline);
-play.size(800);
-play.center(500, 50);
-let pause = sys.canvas.group().use(sys.symbols["pause"]);
-pause.timeline(sys.timeline);
-pause.center(1000, -400);
-let restart = sys.canvas.group().use(sys.symbols["stop"]);
-restart.timeline(sys.timeline);
-restart.center(2000, -400);
-// functions
-play.click(function () {
-  this.timeline().play();
-});
-pause.click(function () {
-  this.timeline().pause();
-});
-restart.click(function () {
-  this.timeline().stop();
-});
-
-// Example removal after animation
-ssu_inst_2.animator.after(()=>{
-  ssu_inst_2_grp.remove();
-});
-*/

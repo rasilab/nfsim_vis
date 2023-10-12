@@ -55,6 +55,7 @@ export class Molecule extends Actor {
     this.component_by_id = {};
     this.current_component = 0;
     this.bonds = {};
+    this.fixed = false;
   }
   add_bond(cid, target_tuple, target_component) {
     this.bonds[target_tuple] = target_component;
@@ -111,6 +112,37 @@ export class Molecule extends Actor {
       this.components[Object.keys(this.components)[i]].sync_svg_location();
     }
   }
+  sync_opacity() {
+    this.opacity = this.group.attr('opacity');
+  }
+  set_fixed() {
+    // should user be able to toggle between fixed / not fixed?
+    this.fixed = true;
+  }
+  // return true if connected to a fixed molecule, false otherwise
+  is_fixed_through_bonds() {
+    // note: maintaining attributes to keep track of this information may
+    // be preferable, but would likely require complicated implementation
+    // - see: https://en.wikipedia.org/wiki/Dynamic_connectivity
+    // -- is this actually the same problem?
+    let visited = new Set();
+    let test = function (molecule) {
+      return molecule.fixed;
+    }
+    return this.dfs_over_bonds(visited, test);
+  }
+  // return true if any molecule reachable via this molecule's
+  // bonds satisfies the given test function, false otherwise
+  dfs_over_bonds(visited, test) {
+    visited.add(this);
+    if (test(this)) return true;
+    for (const target_component of Object.values(this.bonds)) {
+      if (!visited.has(target_component.parent)) {
+        if (target_component.parent.dfs_over_bonds(visited, test)) return true;
+      }
+    }
+    return false;
+  }
 }
 
 export class Component extends Actor {
@@ -119,6 +151,7 @@ export class Component extends Actor {
     this.states = states;
     this.current_state = current_state;
     this.curr_state_id = null;
+    this.prev_state_id = null;
     this.current_render;
     this.pos = pos;
     this.bonds = {};
@@ -145,14 +178,20 @@ export class Component extends Actor {
     state.set_parent(this);
   }
   set_state(state) {
+    this.prev_state_id = this.curr_state_id;
     this.curr_state_id = state.id;
     this.current_state = state;
   }
+  get_state_by_id(state_id) {
+    return this.states[state_id];
+  }
   set_state_by_id(state_id) {
+    this.prev_state_id = this.curr_state_id;
     this.curr_state_id = state_id;
     this.current_state = this.states[state_id];
   }
   next_state () {
+    this.prev_state_id = this.curr_state_id;
     let next_id = (this.curr_state_id+1)%this.states.length;
     this.curr_state_id = next_id;
     this.current_state = this.states[this.curr_state_id];
