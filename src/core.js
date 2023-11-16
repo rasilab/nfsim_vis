@@ -14,133 +14,22 @@
 // - NGL
 
 export class RepresentationTemplate {
-  constructor(svg) {
-    this.svg = svg;
+  constructor(symbol) {
+    this.symbol = symbol;
   }
 }
 
 export class Representation {
-  constructor(template, id) {
+  constructor(template, id, system) {
     this.template = template;
     this.id = id; // molecule/component/state (any need to specify?)
     // is id needed if linking to actor?
-    this.render = null; // (nested) rendered svg
+    this.system = system;
+    this.group = null; // (nested) rendered svg
     this.x = 0;
     this.y = 0;
     this.opacity = 0;
     // probably should link to actor in some way
-  }
-  render() {
-
-  }
-}
-
-// Begin: Actor classes
-export class Actor {
-  constructor(name, parent) {
-    this.name = name;
-    this.parent = parent;
-    this.system = null;
-    this.id = null;
-    this.x = 0;
-    this.y = 0;
-  }
-  set_parent(parent) {
-    this.parent = parent;
-  }
-  set_system(system) {
-    this.system = system;
-  }
-  render() {
-    Error("Not implemented for template class");
-  }
-}
-
-export class MoleculeType {
-  constructor(mtype_dict, events_bool, system) {
-    this.dict = mtype_dict;
-    this.events = events_bool;
-    this.name = null;
-    this.typeID = null;
-    this.system = system;
-    this.symbol = null;
-    this.initialize();
-  }
-  initialize() {
-    // we can either have molecule types from events
-    // or from the model itself if events are missing
-    if (this.events) {
-      // events file given
-    } else {
-      // no events file given, using model
-    }
-    // is there a distinction between these two cases?
-    this.name = this.dict["@id"];
-    if (this.dict["typeID"] !== "undefined") {
-      this.typeID = this.dict["typeID"];
-    }
-    // maybe should just handle symbol through constructor?
-    this.symbol = this.system.symbols[this.dict["svg_name"]];
-    // what svg representation to use?
-  }
-  instantiate_molecule() {
-    // this will be used to instantiate a single instance of the molecule
-    let molecule = new Molecule(
-      this.name,
-      this.system,
-      {},
-      this.symbol
-    );
-    // how to handle components?
-    let comps = this.dict["ListOfComponentTypes"]['ComponentType'];
-    this.system.parse_comps(comps, molecule);
-
-    molecule.set_molecule_type(this);
-    molecule.set_system(this.system);
-    return molecule;
-  }
-}
-
-export class Molecule extends Actor {
-  constructor(name, parent, components, symbol) {
-    super(name, parent);
-    this.components = components;
-    // this.symbol = symbol;
-    this.group = null;
-    this.animator = null;
-    this.molecule_type = null;
-    // this.typeID = null;
-    this.component_by_id = {};
-    this.current_component = 0;
-    this.opacity = 0;
-    this.bonds = {};
-    this.fixed = false;
-  }
-  set_molecule_type(molecule_type) {
-    this.molecule_type = molecule_type;
-    // maybe can just do this in constructor
-  }
-  add_bond(cid, target_tuple, target_component) {
-    this.bonds[target_tuple] = target_component;
-    this.component_by_id[cid].add_bond(target_tuple, target_component);
-  }
-  remove_bond(cid, target_tuple) {
-    if (target_tuple in this.bonds) {
-      delete this.bonds[target_tuple];
-      this.component_by_id[cid].remove_bond(target_tuple);
-      return true;
-    } else {
-      console.log("can't find key: ", target_tuple, " in bonds!");
-      return false
-    }
-  }
-  add_component(name, component) {
-    // component.set_system(this.system);
-    // there's something weird about how systems are set
-    component.id = this.current_component;
-    this.components[name] = component;
-    this.component_by_id[this.current_component] = component;
-    this.current_component += 1;
   }
   render() {
     if (this.group == null) {
@@ -148,17 +37,181 @@ export class Molecule extends Actor {
       this.group = this.system.canvas.nested();
     }
     // render molecule
-    this.group.use(this.molecule_type.symbol);
+    this.group.use(this.template.symbol);
+    /*
     // render components
     for (let i = 0; i < Object.keys(this.components).length; i++) {
       this.components[Object.keys(this.components)[i]].render();
     }
+    */
     // setup the runner for the group here as well
     this.group.timeline(this.system.timeline);
     return this.group;
   }
+  sync_svg_location() {
+    this.x = this.group.x();
+    this.y = this.group.y();
+    /*
+    for (let i = 0; i < Object.keys(this.components).length; i++) {
+      this.components[Object.keys(this.components)[i]].sync_svg_location();
+    }
+    */
+  }
+  sync_opacity() {
+    this.opacity = this.group.attr('opacity');
+  }
   transform(transform_dict) {
     this.group.transform(transform_dict);
+  }
+}
+
+export class MoleculeType {
+  constructor(name, typeID, system, symbol) {
+    this.name = name;
+    this.typeID = typeID;
+    this.system = system;
+    this.component_types = [];
+    this.representation_template = new RepresentationTemplate(symbol);
+    // todo: symbol --> svg (?)
+  }
+  add_component_type(component_type) {
+    this.component_types.push(component_type);
+  }
+  instantiate_molecule() {
+    // this will be used to instantiate a single instance of the molecule
+    let molecule = new Molecule(
+      this,
+      this.system,
+      this.system
+    );
+
+    this.instantiate_components(molecule);
+
+    // -- todo: review following block --
+    molecule.set_representation(new Representation(this.representation_template, null, this.system));
+    
+    return molecule;
+  }
+  instantiate_components(molecule) {
+    for (const component_type of this.component_types) {
+      let component = component_type.instantiate_component(molecule);
+      molecule.add_component(component);
+    }
+  }
+}
+
+export class ComponentType {
+  constructor(name, molecule_type, system, default_state_id, pos) {
+    this.name = name;
+    this.molecule_type = molecule_type;
+    this.system = system;
+    this.state_types = [];
+    this.default_state_id = default_state_id;
+    this.pos = pos;
+  }
+  add_state_type(state_type) {
+    this.state_types.push(state_type);
+  }
+  instantiate_component(molecule) {
+    let component = new Component(
+      this,
+      molecule,
+      this.system,
+      this.default_state_id
+    );
+
+    this.instantiate_component_states(component);
+
+    return component;
+  }
+  instantiate_component_states(component) {
+    for (const state_type of this.state_types) {
+      let component_state = state_type.instantiate_component_state(component);
+      component.add_state(component_state);
+    }
+  }
+}
+
+export class ComponentStateType {
+  constructor(name, id, component_type, symbol) {
+    this.name = name;
+    this.id = id;
+    this.component_type = component_type;
+    this.representation_template = new RepresentationTemplate(symbol);
+  }
+  instantiate_component_state(component) {
+    let component_state = new ComponentState(
+      this,
+      component,
+      this.system
+    );
+
+    return component_state;
+  }
+}
+
+// Begin: Actor classes
+export class Actor {
+  constructor(type, parent, system) {
+    this.type = type;
+    this.parent = parent;
+    this.system = system;
+  }
+  set_parent(parent) {
+    this.parent = parent;
+  }
+  set_system(system) {
+    this.system = system;
+  }
+}
+
+export class Molecule extends Actor {
+  constructor(type, parent, system) {
+    super(type, parent, system);
+    this.components = [];
+    this.bonds = {};
+
+    // -- todo: review following block --
+    this.animator = null;
+    this.representation = null;
+    this.fixed = false;
+  }
+  add_component(component) {
+    this.components.push(component);
+  }
+  get_component_by_id(component_id) {
+    return this.components[component_id];
+  }
+  add_bond(cid, target_tuple, target_component) {
+    this.bonds[target_tuple] = target_component;
+    this.components[cid].add_bond(target_tuple, target_component);
+  }
+  remove_bond(cid, target_tuple) {
+    if (target_tuple in this.bonds) {
+      delete this.bonds[target_tuple];
+      this.components[cid].remove_bond(target_tuple);
+      return true;
+    } else {
+      console.log("can't find key: ", target_tuple, " in bonds!");
+      return false
+    }
+  }
+  // -- todo: review following block --
+  set_representation(representation) {
+    this.representation = representation;
+    // maybe can just do this in constructor
+  }
+  render() {
+    return this.representation.render();
+  }
+  sync_svg_location() {
+    this.representation.sync_svg_location();
+  }
+  sync_opacity() {
+    this.representation.sync_opacity();
+  }
+  transform(transform_dict) {
+    this.representation.transform(transform_dict);
   }
   // detail printing for debug purposes
   print_details() {
@@ -167,16 +220,6 @@ export class Molecule extends Actor {
     for (let i = 0; i < Object.keys(this.components).length; i++) {
       this.components[Object.keys(this.components)[i]].print_details();
     }
-  }
-  sync_svg_location() {
-    this.x = this.group.x();
-    this.y = this.group.y();
-    for (let i = 0; i < Object.keys(this.components).length; i++) {
-      this.components[Object.keys(this.components)[i]].sync_svg_location();
-    }
-  }
-  sync_opacity() {
-    this.opacity = this.group.attr('opacity');
   }
   set_fixed() {
     // should user be able to toggle between fixed / not fixed?
@@ -209,15 +252,25 @@ export class Molecule extends Actor {
 }
 
 export class Component extends Actor {
-  constructor(name, parent, states, current_state, pos) {
-    super(name, parent);
-    this.states = states;
-    this.current_state = current_state;
-    this.curr_state_id = null;
+  constructor(type, parent, system, curr_state_id) {
+    super(type, parent, system);
+    this.states = [];
+    this.curr_state_id = curr_state_id;
     this.prev_state_id = null;
-    this.current_render;
-    this.pos = pos;
     this.bonds = {};
+
+    // -- todo: review following block --
+    this.current_render;
+  }
+  add_state(component_state) {
+    this.states.push(component_state);
+  }
+  get_state_by_id(state_id) {
+    return this.states[state_id];
+  }
+  set_state_by_id(state_id) {
+    this.prev_state_id = this.curr_state_id;
+    this.curr_state_id = state_id;
   }
   add_bond(target_tuple, target_component) {
     this.bonds[target_tuple] = target_component;
@@ -230,29 +283,8 @@ export class Component extends Actor {
       console.log("can't find key: ", target_tuple, " in bonds!");
       return false
     }
-  }
-  add_state(state) {
-    state.set_system(this.system);
-    if (state.id != null) {
-      this.states[state.id] = state;
-    } else {
-      this.states.push(state);
-    }
-    state.set_parent(this);
-  }
-  set_state(state) {
-    this.prev_state_id = this.curr_state_id;
-    this.curr_state_id = state.id;
-    this.current_state = state;
-  }
-  get_state_by_id(state_id) {
-    return this.states[state_id];
-  }
-  set_state_by_id(state_id) {
-    this.prev_state_id = this.curr_state_id;
-    this.curr_state_id = state_id;
-    this.current_state = this.states[state_id];
-  }
+  }  
+  // -- todo: review following block --
   next_state () {
     this.prev_state_id = this.curr_state_id;
     let next_id = (this.curr_state_id+1)%this.states.length;
@@ -296,16 +328,9 @@ export class Component extends Actor {
 }
 
 export class ComponentState extends Actor {
-  constructor(name, parent, symbol) {
-    super(name, parent);
-    this.symbol = symbol;
-    this.render;
-  }
-  set_symbol(symbol) {
-    this.symbol = symbol;
-  }
-  set_id(state_id) {
-    this.id = state_id;
+  constructor(type, parent, system) {
+    super(type, parent, system);
+    // this.render;
   }
   render(visible) {
     // render state
@@ -598,15 +623,15 @@ export class Operation {
   apply(state_dict) {
     switch(this.type) {
       case "AddBond":
-        state_dict[this.mol_1_index].add_bond(this.comp_1_index, [this.mol_2_index,this.comp_2_index], state_dict[this.mol_2_index].component_by_id[this.comp_2_index]);
-        state_dict[this.mol_2_index].add_bond(this.comp_2_index, [this.mol_1_index,this.comp_1_index], state_dict[this.mol_1_index].component_by_id[this.comp_1_index]);
+        state_dict[this.mol_1_index].add_bond(this.comp_1_index, [this.mol_2_index,this.comp_2_index], state_dict[this.mol_2_index].get_component_by_id(this.comp_2_index));
+        state_dict[this.mol_2_index].add_bond(this.comp_2_index, [this.mol_1_index,this.comp_1_index], state_dict[this.mol_1_index].get_component_by_id(this.comp_1_index));
         break;
       case "DeleteBond":
         state_dict[this.mol_1_index].remove_bond(this.comp_1_index, [this.mol_2_index,this.comp_2_index]);
         state_dict[this.mol_2_index].remove_bond(this.comp_2_index, [this.mol_1_index,this.comp_1_index]);
         break;
       case "StateChange":
-        state_dict[this.mol_1_index].component_by_id[this.comp_1_index].set_state_by_id(this.comp_state_index);
+        state_dict[this.mol_1_index].components[this.comp_1_index].set_state_by_id(this.comp_state_index);
         break;
       case "Add":
         let add_id = this.args[0];
@@ -746,7 +771,6 @@ export class System {
   constructor(canvas, actors, svgs, timeline, event_file) {
     this.canvas = canvas;
     this.actors = actors;
-    this.actor_definitions = {};
     this.timeline = timeline;
     this.svgs = svgs;
     this.symbols = {};
@@ -921,11 +945,8 @@ export class System {
         // but we should report it at least
         console.log("can't find: ", mol_types[i]['@id'], " in event file definitions");
       }
-      // add the definition 
-      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
-      // instantiate molecule type (alternative to using definitions)
-      let molecule_type = new MoleculeType(mol_types[i], true, this);
-      this.molecule_types[mol_types[i]['@id']] = molecule_type;
+
+      this.add_molecule_type(mol_types[i], true);
     }
   }
   async _add_actor_defs_non_event(settings) {
@@ -934,33 +955,110 @@ export class System {
     for (let i = 0; i < mol_types.length; i++) {
       mol_types[i]['typeID'] = i;
       this.typeid_to_name[i] = mol_types[i]['@id'];
-      this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
 
-      let molecule_type = new MoleculeType(mol_types[i], false, this);
-      this.molecule_types[mol_types[i]['@id']] = molecule_type;
+      this.add_molecule_type(mol_types[i], false);
     }
+  }
+  add_molecule_type(mtype_def, events_bool) {
+    // we can either have molecule types from events
+    // or from the model itself if events are missing
+    if (events_bool) {
+      // events file given
+    } else {
+      // no events file given, using model
+    }
+    // is there a distinction between these two cases?
+
+    let name = mtype_def["@id"];
+    let typeID = null;
+    if ("typeID" in mtype_def) {
+      typeID = mtype_def["typeID"];
+    }
+    let symbol = this.symbols[mtype_def["svg_name"]];
+
+    let molecule_type = new MoleculeType(
+      name,
+      typeID,
+      this,
+      symbol
+    );
+
+    if ("ListOfComponentTypes" in mtype_def) {
+      let component_definitions = mtype_def["ListOfComponentTypes"]['ComponentType'];
+      if (!Array.isArray(component_definitions)) {
+        component_definitions = [component_definitions];
+      }
+      this.add_component_types(component_definitions, molecule_type);
+    }
+
+    this.molecule_types[mtype_def["@id"]] = molecule_type;
+  }
+  add_component_types(component_definitions, molecule_type) {
+    for (const comp_def of component_definitions) {
+      let name = comp_def["@id"];
+      let pos = comp_def["pos"];
+
+      let component_type = new ComponentType(
+        name,
+        molecule_type,
+        this,
+        0,
+        pos
+      );
+
+      if ("ListOfAllowedStates" in comp_def) {
+        let state_definitions = comp_def["ListOfAllowedStates"]["AllowedState"];
+        if (!Array.isArray(state_definitions)) {
+          state_definitions = [state_definitions];
+        }
+        this.add_state_types(state_definitions, component_type);
+      } else {
+        // we have no states but we want a default rep
+        this.add_default_state_type(component_type);
+      }
+
+      molecule_type.add_component_type(component_type);
+    }
+  }
+  add_state_types(state_definitions, component_type) {
+    for (const state_def of state_definitions) {
+      let name = state_def["@id"];
+      let id = state_def["state_id"];
+      let symbol = this.symbols[state_def["svg_name"]];
+
+      let state_type = new ComponentStateType(
+        name,
+        id,
+        component_type,
+        symbol
+      );
+
+      component_type.add_state_type(state_type);
+    }
+  }
+  add_default_state_type(component_type) {
+    let state_name = `${component_type.molecule_type.name}_${component_type.name}_0`;
+    let state_svg = "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
+    if (!(state_name in this.svgs)) {
+      this.add_svg(state_name, state_svg);
+      if (!(state_name in this.symbols)) {
+        this.define_symbol(state_name);
+      }
+    }
+
+    let state_type = new ComponentStateType(
+      state_name,
+      0,
+      component_type,
+      this.symbols[state_name]
+    );
+
+    component_type.add_state_type(state_type);
   }
   add_actor_from_name(actor_name) {
-    // instantiate molecule from molecule type (alternative to using definitions)
+    // instantiate molecule from molecule type
     let molecule_type = this.molecule_types[actor_name];
     return molecule_type.instantiate_molecule();
-    /*
-    if (typeof this.events !== 'undefined') {
-      return this._add_actor_from_name_event(actor_name);
-    } else {
-      return this._add_actor_from_name_non_event(actor_name);
-    }
-    */
-  }
-  _add_actor_from_name_event(actor_name) {
-    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
-    actor.set_system(this);
-    return actor;
-  }
-  _add_actor_from_name_non_event(actor_name) {
-    let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
-    actor.set_system(this);
-    return actor;
   }
   add_actor(actor) {
     actor.set_system(this);
@@ -969,22 +1067,6 @@ export class System {
     } else {
       this.actors[actor.id] = actor;
     }
-  }
-  _make_actor_from_def_non_event(def) {
-    let molecule = new Molecule(
-      def["@id"],
-      this,
-      {},
-      this.symbols[def["svg_name"]]
-    );
-    if ("typeID" in def) {
-      molecule.typeID = def['typeID'];
-    }
-    if ("ListOfComponentTypes" in def) {
-      let comps = def["ListOfComponentTypes"]['ComponentType'];
-      this.parse_comps(comps, molecule);
-    }
-    return molecule;
   }
   // svgs and related methods
   add_svg(name, svg) {
@@ -997,9 +1079,9 @@ export class System {
       if (svg["type"] == "file") {
         await fetch(svg["path"])
           .then((resp) => resp.text())
-          .then((str) => this.add_svg(`${svg["name"]}`, str));
+          .then((str) => this.add_svg(svg["name"], str));
       } else if (svg["type"] == "string") {
-        this.add_svg(`${svg["name"]}`, svg["string"]);
+        this.add_svg(svg["name"], svg["string"]);
       } else {
         Error(`SVG type ${svg["type"]} is not implemented!`);
       }
@@ -1035,80 +1117,6 @@ export class System {
       return ops.operations; 
     } else {
       setTimeout(parse_ops, 250);
-    }
-  }
-  parse_state(state_dict, component) {
-    let name = state_dict["@id"];
-    let state = new ComponentState(
-      name,
-      component,
-      this.symbols[
-        `${state_dict["svg_name"]}`
-      ]
-    );
-    state.set_id(state_dict["state_id"]);
-    return state;
-  }
-  parse_states(states, component) {
-    if (Array.isArray(states)) {
-      for (
-        let j = 0;
-        j < states.length;
-        j++
-      ) {
-        let state = this.parse_state(states[j],component);
-        component.add_state(state);
-      }
-    } else {
-      let state = this.parse_state(states,component);
-      component.add_state(state);
-    }
-  }
-  parse_comp(comp, molecule) {
-    let component = new Component(
-      comp["@id"],
-      molecule,
-      [],
-      0,
-      comp["pos"]
-    );
-    component.set_system(this);
-    if ("ListOfAllowedStates" in comp) {
-      let states = comp["ListOfAllowedStates"]["AllowedState"];
-      this.parse_states(states, component);
-    } else {
-      // we have no states but we want a default rep
-      let state_name = `${molecule.name}_${component.name}_0`;
-      let state_svg = "<svg height=\"500\" width=\"500\"><circle cx=\"100\" cy=\"100\" r=\"100\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" /></svg>"
-      if (!(state_name in this.svgs)) {
-        this.add_svg(state_name, state_svg);
-        if (!(state_name in this.symbols)) {
-          this.define_symbol(state_name);
-        }
-      }
-      let state = new ComponentState(
-        state_name,
-        component,
-        this.symbols[
-          `${state_name}`
-        ]
-      );
-      state.set_id(0);
-      component.add_state(state);
-    }
-    component.set_state_by_id(0);
-    return component;
-  }
-  parse_comps(comps, molecule) {
-    if (Array.isArray(comps)) {
-      for (let i = 0; i < comps.length; i++) {
-        let component = this.parse_comp(comps[i], molecule);
-        molecule.add_component(component.name, component);
-      }
-    } else {
-      // single component
-      let component = this.parse_comp(comps, molecule);
-      molecule.add_component(component.name, component);
     }
   }
 }
