@@ -13,39 +13,64 @@
 // examples
 // - NGL
 
+// todo: symbol --> svg (?)
+
+// todo: update animation script to match new structure
+
 export class RepresentationTemplate {
-  constructor(symbol) {
+  constructor(symbol, system) {
     this.symbol = symbol;
+    this.system = system;
   }
 }
 
+// todo: make nested groups & symbols work nicely (including component representation with null symbol)
 export class Representation {
-  constructor(template, id, system) {
+  constructor(template, actor) {
     this.template = template;
-    this.id = id; // molecule/component/state (any need to specify?)
-    // is id needed if linking to actor?
-    this.system = system;
+    this.system = template.system;
+    this.actor = actor;
     this.group = null; // (nested) rendered svg
     this.x = 0;
     this.y = 0;
     this.opacity = 0;
-    // probably should link to actor in some way
   }
+  // todo: fix render method & review all other methods
   render() {
     if (this.group == null) {
-      // this.group = this.system.canvas.group();
       this.group = this.system.canvas.nested();
     }
-    // render molecule
-    this.group.use(this.template.symbol);
-    /*
-    // render components
-    for (let i = 0; i < Object.keys(this.components).length; i++) {
-      this.components[Object.keys(this.components)[i]].render();
+    if (this.actor instanceof Molecule) {
+      this.group.use(this.template.symbol);
+      for (const component of this.actor.components) {
+        component.representation.render();
+      }
     }
-    */
+    else if (this.actor instanceof Component) {
+      for (let i = 0;i<this.actor.states.length;i++) { 
+        if (i==this.actor.curr_state_id) {
+          let render_inst = this.actor.states[i].render(true);
+          // this.current_render = render_inst;
+          render_inst.transform({
+            translateX: this.actor.type.pos[0],
+            translateY: this.actor.type.pos[1],
+          });
+        } else {
+          let render_inst = this.actor.states[i].render(false);
+          render_inst.transform({
+            translateX: this.actor.type.pos[0],
+            translateY: this.actor.type.pos[1],
+          });
+        }
+      } 
+    }
+    else if (this.actor instanceof ComponentState) {
+
+    }
+
     // setup the runner for the group here as well
     this.group.timeline(this.system.timeline);
+
     return this.group;
   }
   sync_svg_location() {
@@ -71,8 +96,7 @@ export class MoleculeType {
     this.typeID = typeID;
     this.system = system;
     this.component_types = [];
-    this.representation_template = new RepresentationTemplate(symbol);
-    // todo: symbol --> svg (?)
+    this.representation_template = new RepresentationTemplate(symbol, system);
   }
   add_component_type(component_type) {
     this.component_types.push(component_type);
@@ -86,9 +110,6 @@ export class MoleculeType {
     );
 
     this.instantiate_components(molecule);
-
-    // -- todo: review following block --
-    molecule.set_representation(new Representation(this.representation_template, null, this.system));
     
     return molecule;
   }
@@ -108,6 +129,7 @@ export class ComponentType {
     this.state_types = [];
     this.default_state_id = default_state_id;
     this.pos = pos;
+    this.representation_template = new RepresentationTemplate(null, system);
   }
   add_state_type(state_type) {
     this.state_types.push(state_type);
@@ -133,11 +155,12 @@ export class ComponentType {
 }
 
 export class ComponentStateType {
-  constructor(name, id, component_type, symbol) {
+  constructor(name, id, component_type, system, symbol) {
     this.name = name;
     this.id = id;
     this.component_type = component_type;
-    this.representation_template = new RepresentationTemplate(symbol);
+    this.system = system;
+    this.representation_template = new RepresentationTemplate(symbol, system);
   }
   instantiate_component_state(component) {
     let component_state = new ComponentState(
@@ -170,10 +193,10 @@ export class Molecule extends Actor {
     super(type, parent, system);
     this.components = [];
     this.bonds = {};
+    this.representation = new Representation(type.representation_template, this);
 
     // -- todo: review following block --
     this.animator = null;
-    this.representation = null;
     this.fixed = false;
   }
   add_component(component) {
@@ -197,13 +220,6 @@ export class Molecule extends Actor {
     }
   }
   // -- todo: review following block --
-  set_representation(representation) {
-    this.representation = representation;
-    // maybe can just do this in constructor
-  }
-  render() {
-    return this.representation.render();
-  }
   sync_svg_location() {
     this.representation.sync_svg_location();
   }
@@ -258,6 +274,7 @@ export class Component extends Actor {
     this.curr_state_id = curr_state_id;
     this.prev_state_id = null;
     this.bonds = {};
+    this.representation = new Representation(type.representation_template, this);
 
     // -- todo: review following block --
     this.current_render;
@@ -291,27 +308,6 @@ export class Component extends Actor {
     this.curr_state_id = next_id;
     this.current_state = this.states[this.curr_state_id];
   }
-  render() {
-    // render component states
-    for (let i = 0;i<this.states.length;i++) { 
-      if (i==this.current_state.id) {
-        let render_inst = this.current_state.render(true);
-        this.current_render = render_inst;
-        render_inst.transform({
-          translateX: this.pos[0],
-          translateY: this.pos[1],
-        });
-      } else {
-        let render_inst = this.states[i].render(false);
-        render_inst.transform({
-          translateX: this.pos[0],
-          translateY: this.pos[1],
-        });
-      }
-    } 
-    
-    return this.current_render;
-  }
   // detail printing for debug purposes
   print_details() {
     console.log(`  Component name: ${this.name}`);
@@ -330,13 +326,15 @@ export class Component extends Actor {
 export class ComponentState extends Actor {
   constructor(type, parent, system) {
     super(type, parent, system);
+    this.representation = new Representation(type.representation_template, this);
     // this.render;
   }
+  // -- todo: review following block --
   render(visible) {
     // render state
-    let render_inst = this.parent.parent.group.use(this.symbol);
+    let render_inst = this.parent.parent.representation.group.use(this.representation.template.symbol);
     if (!visible) { 
-      render_inst.opacity(0.0);
+      render_inst.opacity(0);
 
       // in mol_viewer, click event listeners on current_render are
       // blocked by invisible renders that are in front of current_render
@@ -1030,6 +1028,7 @@ export class System {
         name,
         id,
         component_type,
+        this,
         symbol
       );
 
@@ -1050,6 +1049,7 @@ export class System {
       state_name,
       0,
       component_type,
+      this,
       this.symbols[state_name]
     );
 

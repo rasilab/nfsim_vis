@@ -19,7 +19,7 @@ let mrna_size = {w: 6000, h: 200};
 // -- value: instance of core.Molecule
 for (const instance of Object.values(sys.full_state)) {
       let render;
-      switch(instance.name) {
+      switch(instance.type.name) {
         // mrna: requires pre-processing, needs to be positioned & visible
         case "mrna":
           // loop over nt components to spread them out evenly
@@ -27,14 +27,16 @@ for (const instance of Object.values(sys.full_state)) {
           for (let i = 0; i<mrna_positions.length; i++) {
             // update x position of each nt component
             let component = instance.components[mrna_positions[i]];
-            component.pos[0] += (mrna_size.w / mrna_positions.length) * i;
+            // component.pos[0] += (mrna_size.w / mrna_positions.length) * i;
+            // todo: fix (should really be in external preprocessing script and done at the level
+            // of molecule type, it no longer makes much sense to edit individual molecules)
           }
 
           // designate mrna as a fixed molecule (its position will not change)
           instance.set_fixed();
 
           // generate render
-          render = instance.render();
+          render = instance.representation.render();
 
           // load info for positioning in coordinate system of render (this could maybe be done a better way)
           window_center = render.point(window.innerWidth/2, window.innerHeight/2);
@@ -49,7 +51,7 @@ for (const instance of Object.values(sys.full_state)) {
           break;
         // all other molecules: not positioned & not visible
         default:
-          render = instance.render();
+          render = instance.representation.render();
           render.opacity(0);
           break;
       }
@@ -210,15 +212,15 @@ for (const firing of firings) {
       case "MoveBond":
         if (previous_state_info.mol_1_fixed_through_bonds && !previous_state_info.mol_2_fixed_through_bonds) {
           recursive_animate_move(
-            inst_2.component_by_id[operation.comp_2_index],
-            inst_1.component_by_id[operation.comp_1_index],
+            inst_2.get_component_by_id(operation.comp_2_index),
+            inst_1.get_component_by_id(operation.comp_1_index),
             time*time_multiplier,
             duration
           );
         } else if (!previous_state_info.mol_1_fixed_through_bonds && previous_state_info.mol_2_fixed_through_bonds) {
           recursive_animate_move(
-            inst_1.component_by_id[operation.comp_1_index],
-            inst_2.component_by_id[operation.comp_2_index],
+            inst_1.get_component_by_id(operation.comp_1_index),
+            inst_2.get_component_by_id(operation.comp_2_index),
             time*time_multiplier,
             duration
           );
@@ -228,9 +230,9 @@ for (const firing of firings) {
         break;
       case "StateChange":
         // todo: test with a visible component
-        let component = inst_1.component_by_id[operation.comp_1_index];
+        let component = inst_1.get_component_by_id(operation.comp_1_index);
         let prev_state = component.get_state_by_id(component.prev_state_id);
-        let curr_state = component.current_state;
+        let curr_state = component.get_state_by_id(component.curr_state_id);
         if (component.prev_state_id != component.curr_state_id) {
           animate_state_opacity(
             prev_state,
@@ -319,8 +321,8 @@ function animate_move(molecule, x, y, time, duration) {
     }).move(x, y);
   } else if (x != null) {
     molecule.x = x;
-    for (const component of Object.values(molecule.components)) {
-      component.x = molecule.x + component.pos[0];
+    for (const component of molecule.components) {
+      component.x = molecule.x + component.type.pos[0];
     }
     // move only in x
     molecule.animator = molecule.animator.animate({
@@ -330,8 +332,8 @@ function animate_move(molecule, x, y, time, duration) {
     }).x(x);
   } else if (y != null) {
     molecule.y = y;
-    for (const component of Object.values(molecule.components)) {
-      component.y = molecule.y + component.pos[1];
+    for (const component of molecule.components) {
+      component.y = molecule.y + component.type.pos[1];
     }
     // move only in y
     molecule.animator = molecule.animator.animate({
@@ -370,14 +372,14 @@ function get_next_y(moving_component, fixed_component) {
   let offset = 100;
   // should offset magnitude be constant or depend on the molecules involved?
 
-  let fixed_molecule_height = fixed_component.parent.molecule_type.symbol.node.firstChild.height.baseVal.value;
-  let moving_molecule_height = moving_component.parent.molecule_type.symbol.node.firstChild.height.baseVal.value;
+  let fixed_molecule_height = fixed_component.parent.representation.template.symbol.node.firstChild.height.baseVal.value;
+  let moving_molecule_height = moving_component.parent.representation.template.symbol.node.firstChild.height.baseVal.value;
   // - is there a better way to do this?
   // - does this require us to assume no resizing?
   
   // the following does not currently take into account where fixed_component is on its molecule
   let direction;
-  if (moving_molecule_height/2 - moving_component.pos[1] > 0) {
+  if (moving_molecule_height/2 - moving_component.type.pos[1] > 0) {
     // moving_component is at top of molecule, positive offset (positioned under fixed molecule)
     direction = 1;
     offset += fixed_molecule_height;
