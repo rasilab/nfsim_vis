@@ -111,6 +111,7 @@ for (const firing of firings) {
     }
     modified_op_list.push(ops[i]);
   }
+  // events with same name should have same structure --> can be "compiled" in advance
 
   for (const op of ops) {
     // parse operation
@@ -369,8 +370,8 @@ function get_next_y(moving_component, fixed_component) {
   let offset = 100;
   // should offset magnitude be constant or depend on the molecules involved?
 
-  let fixed_molecule_height = fixed_component.parent.symbol.node.firstChild.height.baseVal.value;
-  let moving_molecule_height = moving_component.parent.symbol.node.firstChild.height.baseVal.value;
+  let fixed_molecule_height = fixed_component.parent.molecule_type.symbol.node.firstChild.height.baseVal.value;
+  let moving_molecule_height = moving_component.parent.molecule_type.symbol.node.firstChild.height.baseVal.value;
   // - is there a better way to do this?
   // - does this require us to assume no resizing?
   

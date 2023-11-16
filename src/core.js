@@ -1,6 +1,40 @@
 // this is needed when running from npm
 // import { SVG } from '@svgdotjs/svg.js'
 
+// instance of molecule type --> instance of representation type class
+// instance of component type --> instance of representation type class
+// instance of component state type --> instance of representation type class
+//      |                                     |
+//      v                                     v
+// instance of molecule --> instance of representation class
+// instance of component --> instance of representation class
+// instance of component state --> instance of representation class
+
+// examples
+// - NGL
+
+export class RepresentationTemplate {
+  constructor(svg) {
+    this.svg = svg;
+  }
+}
+
+export class Representation {
+  constructor(template, id) {
+    this.template = template;
+    this.id = id; // molecule/component/state (any need to specify?)
+    // is id needed if linking to actor?
+    this.render = null; // (nested) rendered svg
+    this.x = 0;
+    this.y = 0;
+    this.opacity = 0;
+    // probably should link to actor in some way
+  }
+  render() {
+
+  }
+}
+
 // Begin: Actor classes
 export class Actor {
   constructor(name, parent) {
@@ -23,9 +57,13 @@ export class Actor {
 }
 
 export class MoleculeType {
-  constructor(mtype_dict, events_bool) {
+  constructor(mtype_dict, events_bool, system) {
     this.dict = mtype_dict;
     this.events = events_bool;
+    this.name = null;
+    this.typeID = null;
+    this.system = system;
+    this.symbol = null;
     this.initialize();
   }
   initialize() {
@@ -36,11 +74,30 @@ export class MoleculeType {
     } else {
       // no events file given, using model
     }
+    // is there a distinction between these two cases?
+    this.name = this.dict["@id"];
+    if (this.dict["typeID"] !== "undefined") {
+      this.typeID = this.dict["typeID"];
+    }
+    // maybe should just handle symbol through constructor?
+    this.symbol = this.system.symbols[this.dict["svg_name"]];
+    // what svg representation to use?
   }
   instantiate_molecule() {
-    // this will be used to instantiate a single
-    // instance of the molecule
-    return
+    // this will be used to instantiate a single instance of the molecule
+    let molecule = new Molecule(
+      this.name,
+      this.system,
+      {},
+      this.symbol
+    );
+    // how to handle components?
+    let comps = this.dict["ListOfComponentTypes"]['ComponentType'];
+    this.system.parse_comps(comps, molecule);
+
+    molecule.set_molecule_type(this);
+    molecule.set_system(this.system);
+    return molecule;
   }
 }
 
@@ -48,14 +105,20 @@ export class Molecule extends Actor {
   constructor(name, parent, components, symbol) {
     super(name, parent);
     this.components = components;
-    this.symbol = symbol;
+    // this.symbol = symbol;
     this.group = null;
     this.animator = null;
-    this.typeID = null;
+    this.molecule_type = null;
+    // this.typeID = null;
     this.component_by_id = {};
     this.current_component = 0;
+    this.opacity = 0;
     this.bonds = {};
     this.fixed = false;
+  }
+  set_molecule_type(molecule_type) {
+    this.molecule_type = molecule_type;
+    // maybe can just do this in constructor
   }
   add_bond(cid, target_tuple, target_component) {
     this.bonds[target_tuple] = target_component;
@@ -85,7 +148,7 @@ export class Molecule extends Actor {
       this.group = this.system.canvas.nested();
     }
     // render molecule
-    this.group.use(this.symbol);
+    this.group.use(this.molecule_type.symbol);
     // render components
     for (let i = 0; i < Object.keys(this.components).length; i++) {
       this.components[Object.keys(this.components)[i]].render();
@@ -603,16 +666,46 @@ export class Operations {
     for (let i = 0;i<this.ops_types.length;i++) {
       if (this.ops_types[i] in dict) {
         // we got an operation, lets get args
-        let args = {};
-        for (let j = 0;j<this.op_args.length;j++) {
-          if (this.op_args[j] in dict[this.ops_types[i]]) {
-            args[this.op_args[j]] = dict[this.ops_types[i]][this.op_args[j]];
-          }
+        // need to handle the case of multiple operations of one type
+        let op_list;
+        if (Array.isArray(dict[this.ops_types[i]])) {
+          op_list = dict[this.ops_types[i]];
+        } else {
+          op_list = [dict[this.ops_types[i]]];
         }
-        let correct_op = new Operation(this.ops_types[i], args, this.sys);
-        this.operations.push(correct_op);
+
+        for (const op_dict of op_list) {
+          let args = {};
+          for (let j = 0;j<this.op_args.length;j++) {
+            if (this.op_args[j] in op_dict) {
+              args[this.op_args[j]] = op_dict[this.op_args[j]];
+            }
+          }
+          let correct_op = new Operation(this.ops_types[i], args, this.sys);
+          this.operations.push(correct_op);
+        }
       }
     }
+    // this way of parsing the operations associated with a rule
+    // does not preserve ordering, for example in complex_model:
+    // - ordering in settings file & event file: StateChange, DeleteBond, AddBond
+    // - ordering here: AddBond, DeleteBond, StateChange
+
+    // could maybe switch to iterating over dict, but that may not be stable
+    // - string keys of an object will be in ascending chronological order
+    // of property creation (https://tc39.es/ecma262/#sec-ordinaryownpropertykeys)
+    // - how does this work if object is created via .json()?
+    // - it might be reasonable to assume that order would be preserved
+    
+    // where does the ordering in settings/event file come from?
+    // is it identical between models?
+    
+    // is order of operations important for animation?
+    
+    // for animation: operations -> transformations & composing these..
+    // - are the patterns specified by the settings file enough information?
+    // - 2 operations on the same reactant patterns will involve the same 2 molecules
+    // - what is @ensureConnected?
   }
 }
 
@@ -661,7 +754,8 @@ export class System {
     this.rules = {};
     this.event_file = event_file;
     this.full_state = null;
-    this.typeid_to_name = {}
+    this.typeid_to_name = {};
+    this.molecule_types = {};
   }
   async initialize(settings) {
     if (typeof this.event_file !== 'undefined') {
@@ -829,6 +923,9 @@ export class System {
       }
       // add the definition 
       this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+      // instantiate molecule type (alternative to using definitions)
+      let molecule_type = new MoleculeType(mol_types[i], true, this);
+      this.molecule_types[mol_types[i]['@id']] = molecule_type;
     }
   }
   async _add_actor_defs_non_event(settings) {
@@ -838,14 +935,22 @@ export class System {
       mol_types[i]['typeID'] = i;
       this.typeid_to_name[i] = mol_types[i]['@id'];
       this.actor_definitions[mol_types[i]['@id']] = mol_types[i];
+
+      let molecule_type = new MoleculeType(mol_types[i], false, this);
+      this.molecule_types[mol_types[i]['@id']] = molecule_type;
     }
   }
   add_actor_from_name(actor_name) {
+    // instantiate molecule from molecule type (alternative to using definitions)
+    let molecule_type = this.molecule_types[actor_name];
+    return molecule_type.instantiate_molecule();
+    /*
     if (typeof this.events !== 'undefined') {
       return this._add_actor_from_name_event(actor_name);
     } else {
       return this._add_actor_from_name_non_event(actor_name);
     }
+    */
   }
   _add_actor_from_name_event(actor_name) {
     let actor = this._make_actor_from_def_non_event(this.actor_definitions[actor_name]);
