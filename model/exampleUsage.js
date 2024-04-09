@@ -1,7 +1,7 @@
 // exampleUsage.js
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
 import { MoleculeRepresentation, SiteRepresentation } from './representation.js';
-import { xmlToObject } from './utils/xmlToObject.js'; 
+import { xmlToObject } from './utils/xmlToObject.js';
 
 async function fetchAndProcessXML(url) {
     try {
@@ -66,22 +66,26 @@ function createModelFromJson(jsonData) {
 }
 
 function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
-  return `${baseDirectory}${moleculeName}.svg`;
+    return `${baseDirectory}${moleculeName}.svg`;
+}
+
+function createMoleculeRepresentation(monomer, index) {
+    const svgContainer = document.getElementById("modelVisualization");
+    const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
+    const moleculeRep = new MoleculeRepresentation(svgContainer, monomer, svgFilePath);
+    moleculeRep.visualize({ x: 100, y: 200 * index });
 }
 
 
-const svgContainer = document.getElementById("modelVisualization");
-const xmlUrl = './model_xml/mrna_3_codon_translation_model.xml';
-fetchAndProcessXML(xmlUrl).then(modelData => {
-    const model = createModelFromJson(modelData);
+async function main() {
+    const xmlUrl = './model_xml/mrna_3_codon_translation_model.xml';
+    const jsonData = await fetchAndProcessXML(xmlUrl);
+    const model = await createModelFromJson(jsonData);
     console.log(model);
-    model.monomers.forEach((monomer,index) => {
-        const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
-        const moleculeRep = new MoleculeRepresentation(svgContainer, monomer, svgFilePath);
-        moleculeRep.visualize({ x: 100, y: 200 * index });
-    });
-});
+    model.monomers.forEach((monomer, index) => createMoleculeRepresentation(monomer, index));
+}
 
+main();
 
 /* // Create model instances
 const myModel = new Model("Example Model");
