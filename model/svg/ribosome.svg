@@ -1,0 +1,6 @@
+<svg width="200" height="50" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ribosome structure -->
+  <rect x="10" y="15" width="180" height="20" fill="lightgrey" />
+  <circle cx="100" cy="25" r="20" fill="red" />
+  <text x="85" y="30" font-family="Arial" font-size="12" fill="white">Ribosome</text>
+</svg>

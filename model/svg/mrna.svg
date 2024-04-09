@@ -1,0 +1,11 @@
+<svg width="400" height="100" xmlns="http://www.w3.org/2000/svg">
+  <!-- mRNA backbone -->
+  <path d="M 10,50 q 90,-40 180,0 q 90,40 180,0" fill="none" stroke="blue" stroke-width="2" />
+  <!-- Codons represented by circles -->
+  <!-- Codon 1 (p0) -->
+<!--   <circle cx="100" cy="50" r="10" fill="green" />
+  <text x="95" y="55" font-family="Arial" font-size="12" fill="white">p0</text> -->
+  <!-- Codon 2 (p1) -->
+<!--   <circle cx="280" cy="50" r="10" fill="orange" />
+  <text x="275" y="55" font-family="Arial" font-size="12" fill="white">p1</text> -->
+</svg>
