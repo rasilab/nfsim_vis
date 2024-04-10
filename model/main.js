@@ -1,4 +1,4 @@
-// exampleUsage.js
+import { SVG } from './lib/svg.esm.js';
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
 import { MoleculeRepresentation, SiteRepresentation } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
@@ -70,6 +70,7 @@ function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
 
 function addTitle() {
     const svgContainer = document.getElementById("modelVisualization");
+    const svgContainer2 = document.getElementById("ruleVisualization");
     const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
     textElement.setAttribute("x", "50%");
     textElement.setAttribute("y", "20");
