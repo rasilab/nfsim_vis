@@ -12,8 +12,6 @@ async function fetchAndProcessXML(url) {
         }
         const xmlText = await response.text();
         return xmlToObject(xmlText);
-        // Now you can further process the xmlDoc just like in the previous example
-        // For instance, convert it to a JavaScript object or directly manipulate it
     } catch (error) {
         console.error('There was a problem with your fetch operation:', error);
     }
@@ -69,11 +67,25 @@ function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
     return `${baseDirectory}${moleculeName}.svg`;
 }
 
+
+function addTitle() {
+    const svgContainer = document.getElementById("modelVisualization");
+    const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    textElement.setAttribute("x", "50%");
+    textElement.setAttribute("y", "20");
+    textElement.setAttribute("text-anchor", "middle");
+    textElement.setAttribute("font-size", "20");
+    textElement.textContent = "Molecule, Site, State Visualizer";
+    svgContainer.appendChild(textElement);
+}
+
+
 function createMoleculeRepresentation(monomer, index) {
     const svgContainer = document.getElementById("modelVisualization");
     const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
     const moleculeRep = new MoleculeRepresentation(svgContainer, monomer, svgFilePath);
-    moleculeRep.visualize({ x: 100, y: 200 * index });
+    moleculeRep.visualize({ x: 100, y: 100 + 100 * index });
+    return moleculeRep;
 }
 
 
@@ -82,7 +94,9 @@ async function main() {
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
     console.log(model);
-    model.monomers.forEach((monomer, index) => createMoleculeRepresentation(monomer, index));
+    addTitle();
+    const moleculeReps = model.monomers.map((monomer, index) => createMoleculeRepresentation(monomer, index));
+    console.log(moleculeReps);
 }
 
 main();
