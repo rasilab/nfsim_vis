@@ -68,16 +68,27 @@ function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
 }
 
 
-function addTitle() {
-    const svgContainer = document.getElementById("modelVisualization");
-    const svgContainer2 = document.getElementById("ruleVisualization");
-    const textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    textElement.setAttribute("x", "50%");
-    textElement.setAttribute("y", "20");
-    textElement.setAttribute("text-anchor", "middle");
-    textElement.setAttribute("font-size", "20");
-    textElement.textContent = "Molecule, Site, State Visualizer";
-    svgContainer.appendChild(textElement);
+function addSVGContainer() {
+    const svgContainer = SVG()
+        .addTo('body')
+        .size(600, 600)
+        .css('border', '1px solid lightgray')
+        .attr('id', 'modelVisualization');
+    svgContainer
+        .text('Molecule, Site, State Visualizer')
+        .move(svgContainer.width() / 2, 20)
+        .font({ size: 20, anchor: 'middle' });
+
+    const svgContainer2 = SVG()
+        .addTo('body')
+        .size(600, 600)
+        .css('border', '1px solid lightgray')
+        .css('margin-left', '50px')
+        .attr('id', 'ruleVisualization');
+    svgContainer2
+        .text('Rule Visualizer')
+        .move(svgContainer2.width() / 2, 20)
+        .font({ size: 20, anchor: 'middle' });
 }
 
 
@@ -94,10 +105,9 @@ async function main() {
     const xmlUrl = './model_xml/mrna_3_codon_translation_model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
-    console.log(model);
-    addTitle();
-    const moleculeReps = model.monomers.map((monomer, index) => createMoleculeRepresentation(monomer, index));
-    console.log(moleculeReps);
+    addSVGContainer();
+    const moleculeReps = model.monomers.map(
+        (monomer, index) => createMoleculeRepresentation(monomer, index));
 }
 
 main();
