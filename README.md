@@ -17,7 +17,7 @@ classes
 
 - 2024-04-10 Bond visualization logic:
   - If the two molecules that are forming a bond are not connected, then transform the molecules so that the sites are offset by 10px.
-  - If the molecule forming a bond is connected to another molecule after the reaction, then the full complex should be moved. This might not be important for rule visualization, but would be important in simulation visualization.
+  - If the molecule forming a bond is connected to another molecule before the reaction, then the full complex should be moved. This might not be important for rule visualization, but would be important in simulation visualization.
   - if two molecules forming a bond are connected to the same third molecule, then don't move the molecules, but just draw a straight line connecting the two sites.
 
 - 2024-04-10 Rule visualization plan:
