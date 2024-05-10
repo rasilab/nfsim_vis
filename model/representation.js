@@ -8,6 +8,54 @@ export class Representation {
     }
 }
 
+export class MoleculeInitialState extends Representation {
+    constructor(svgContainer, molecule, svgFilePath, index) {
+        super(svgContainer);
+        this.position = { x: 0, y: 0 }; // Default position
+        this.molecule = molecule;
+        this.svgContent = ''; // Placeholder for SVG content
+        this.svgFilePath = svgFilePath;
+        this.index = index;
+        this.sites = [];
+    }
+
+    async visualize(position) {
+        this.position = position; // Store the position
+
+        if (!this.svgContent) {
+            this.svgContent = await fetchSvgContent(this.svgFilePath);
+        }
+
+        if (this.svgContent) {
+            const groupElement = SVG().group()
+                .addTo(this.svgContainer);
+
+                groupElement.transform({translate: this.position});
+
+            const svgDoc = SVG()
+                .svg(this.svgContent)
+                .addTo(groupElement);
+            
+            const moleculeElement = svgDoc.first();
+            const width = moleculeElement.width();
+            const height = moleculeElement.height();
+            const numSites = this.molecule.sites.length;
+            const spacing = width / (numSites + 1)
+
+            // Calculate position for initial site
+            const relativePosition = {
+                // assumes mrna=0 and ribo=1 in model
+                x: (this.index * width / 2),
+                y: height / 2 
+            };
+            this.sites.push(new SiteRepresentation(groupElement, this, this.molecule.sites[0], relativePosition)); 
+        } 
+        else {
+            console.error("SVG content is empty.");
+        }
+    }
+}
+
 
 export class MoleculeRepresentation extends Representation {
     constructor(svgContainer, molecule, svgFilePath) {

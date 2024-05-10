@@ -1,6 +1,6 @@
 import { SVG } from './lib/svg.esm.js';
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
-import { MoleculeRepresentation, SiteRepresentation } from './representation.js';
+import { MoleculeRepresentation, MoleculeInitialState, SiteRepresentation } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 
 async function fetchAndProcessXML(url) {
@@ -100,14 +100,36 @@ function createMoleculeRepresentation(monomer, index) {
     return moleculeRep;
 }
 
+function createMoleculeInitialState(monomer, index) {
+    const svgContainer = document.getElementById("ruleVisualization");
+    const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
+    const moleculeRep = new MoleculeInitialState(svgContainer, monomer, svgFilePath, index);
+    moleculeRep.visualize({x: 100, y: 100 + 100 * index});
+    return moleculeRep;
+}
+
+function iterateReactionRules(rules) {
+    for (const rule in rules) {
+        const name = rules[rule].name;
+        console.log(name, rules[rule]);
+    }
+}
 
 async function main() {
     const xmlUrl = './model_xml/mrna_3_codon_translation_model.xml';
+    // const xmlUrl = './model_xml/model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
     addSVGContainer();
     const moleculeReps = model.monomers.map(
         (monomer, index) => createMoleculeRepresentation(monomer, index));
+        const initialReps = model.monomers.map(
+            (monomer, index) => createMoleculeInitialState(monomer, index));
+    // for (let i = 0; i < model.monomers.length; i++) {
+    //     createMoleculeInitialState(model.monomers[i].name, model.monomers[i].sites);
+    // }
+    console.log(typeof jsonData.ReactionRules);
+    iterateReactionRules(jsonData.ReactionRules);
 }
 
 main();
