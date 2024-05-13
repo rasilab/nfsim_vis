@@ -1,6 +1,6 @@
 import { SVG } from './lib/svg.esm.js';
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
-import { MoleculeRepresentation, MoleculeInitialState, SiteRepresentation } from './representation.js';
+import { MoleculeRepresentation, RuleModeling, SiteRepresentation } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 
 async function fetchAndProcessXML(url) {
@@ -19,7 +19,7 @@ async function fetchAndProcessXML(url) {
 
 
 function createModelFromJson(jsonData) {
-    const model = new Model("mrna_3_codon_translation_model");
+    const model = new Model("model");
 
     // Add Parameters
     Object.entries(jsonData.Parameters).forEach(([name, param]) => {
@@ -100,18 +100,38 @@ function createMoleculeRepresentation(monomer, index) {
     return moleculeRep;
 }
 
-function createMoleculeInitialState(monomer, index) {
+function createMoleculeInitialState(monomer, index, rr_attrs, rr, rateConstant, moleculelist) {
     const svgContainer = document.getElementById("ruleVisualization");
     const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
-    const moleculeRep = new MoleculeInitialState(svgContainer, monomer, svgFilePath, index);
-    moleculeRep.visualize({x: 100, y: 100 + 100 * index});
+    const rulemodel = new RuleModeling(svgContainer, rr_attrs, rr, rateConstant, svgFilePath);
+    const moleculeRep = rulemodel.initiate_reaction(monomer, index, moleculelist);
+    // const moleculeRep = new MoleculeInitialState(svgContainer, monomer, svgFilePath, index, moleculelist);
+    // moleculeRep.visualize({x: 100, y: 100 + 100 * index});
     return moleculeRep;
 }
 
-function iterateReactionRules(rules) {
-    for (const rule in rules) {
-        const name = rules[rule].name;
-        console.log(name, rules[rule]);
+function iterateReactionRules(jsonData, model) {
+    const svgContainer = document.getElementById("ruleVisualization");
+    const rrs = jsonData.ReactionRules;
+    for (const rr in rrs) {
+
+        const rate_name = rr + "_RateLaw";
+        var rate_law = rrs[rr][rate_name];
+        if ('RateConstants' in rate_law) {
+            var rateConstant = rate_law.RateConstants.RateConstant;
+        } else {
+            var rateConstant = 'initial'; // is this generally true? no defined rate constant = initiate?
+        }
+        var rateConstant = rateConstant;
+
+        const rulemodel = new RuleModeling(svgContainer, rrs[rr], rr, rateConstant);
+        const moleculetypes = rulemodel.make_dictionary_moleculetypes()[0];
+        
+        if (rateConstant == 'initial') {
+            const moleculelist = rulemodel.make_dictionary_moleculetypes()[1];
+            const initialReps = model.monomers.map(
+                (monomer, index) => createMoleculeInitialState(monomer, index, rrs[rr], rr, rateConstant, moleculelist));
+        }
     }
 }
 
@@ -120,16 +140,13 @@ async function main() {
     // const xmlUrl = './model_xml/model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
+    console.log(model);
     addSVGContainer();
     const moleculeReps = model.monomers.map(
         (monomer, index) => createMoleculeRepresentation(monomer, index));
-        const initialReps = model.monomers.map(
-            (monomer, index) => createMoleculeInitialState(monomer, index));
-    // for (let i = 0; i < model.monomers.length; i++) {
-    //     createMoleculeInitialState(model.monomers[i].name, model.monomers[i].sites);
-    // }
-    console.log(typeof jsonData.ReactionRules);
-    iterateReactionRules(jsonData.ReactionRules);
+    // const initialReps = model.monomers.map(
+    //     (monomer, index) => createMoleculeInitialState(monomer, index));
+    iterateReactionRules(jsonData, model);
 }
 
 main();

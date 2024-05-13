@@ -8,19 +8,49 @@ export class Representation {
     }
 }
 
-export class MoleculeInitialState extends Representation {
-    constructor(svgContainer, molecule, svgFilePath, index) {
+export class RuleModeling extends Representation {
+    constructor(svgContainer, rr_attrs, rr, rateConstant, svgFilePath) {
         super(svgContainer);
-        this.position = { x: 0, y: 0 }; // Default position
-        this.molecule = molecule;
-        this.svgContent = ''; // Placeholder for SVG content
+        this.svgContent = '';
         this.svgFilePath = svgFilePath;
-        this.index = index;
-        this.sites = [];
+        this.rr_attrs = rr_attrs;
+        this.rr = rr;
+        this.name = rr_attrs.name;
+        this.rulemap = rr_attrs.Map.MapItem;
+        this.operations = rr_attrs.Operations;
+        this.rp = rr_attrs.ReactantPatterns;
+        this.pp = rr_attrs.ProductPatterns;
+        this.rateConstant = rateConstant;
     }
 
-    async visualize(position) {
-        this.position = position; // Store the position
+    make_dictionary_moleculetypes() {
+        const moleculetypes = {};
+        const moleculelist = [];
+        for (const reactantRule in this.pp) {
+            for (const molecule in this.pp[reactantRule].Molecules) {
+                const interactor_name = this.pp[reactantRule].Molecules[molecule].name;
+                const mol_num = molecule.split("_")[molecule.split("_").length - 1];
+                moleculetypes[mol_num] = interactor_name;
+                moleculelist.push(interactor_name);
+            }
+        }
+        return [moleculetypes, moleculelist];
+    }
+
+    async initiate_reaction(monomer, index, moleculelist) {
+        this.moleculelist = moleculelist;
+        this.svgContent = ''; // Placeholder for SVG content
+        this.sites = [];
+        this.index = index;
+        this.position = { x: 100, y: 100 + 100 * this.index};
+        this.molecule = monomer;
+        // console.log(this.molecule);
+        
+        // find the allowed states for this reaction
+        // for (const pattern in this.rp) {
+        //     console.log(this.rp[pattern].Molecules);
+        // }
+
 
         if (!this.svgContent) {
             this.svgContent = await fetchSvgContent(this.svgFilePath);
@@ -40,7 +70,6 @@ export class MoleculeInitialState extends Representation {
             const width = moleculeElement.width();
             const height = moleculeElement.height();
             const numSites = this.molecule.sites.length;
-            const spacing = width / (numSites + 1)
 
             // Calculate position for initial site
             const relativePosition = {
@@ -55,7 +84,6 @@ export class MoleculeInitialState extends Representation {
         }
     }
 }
-
 
 export class MoleculeRepresentation extends Representation {
     constructor(svgContainer, molecule, svgFilePath) {
