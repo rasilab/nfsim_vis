@@ -54,11 +54,19 @@ export class Parameter {
 }
 
 export class Rule {
-    constructor(name, reactants, products, rate) {
+    constructor(name, reactant_patterns, reactant_mol, reactant_mol_components, reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, product_bonds, rate, rateConstant) {
         this.name = name;
-        this.reactants = reactants; // Array of strings or objects representing reactants
-        this.products = products; // Array of strings or objects representing products
         this.rate = rate; // Numerical value representing the rate of the reaction
+        this.rateConstant = rateConstant; // String for the rate parameter of that rule
+        this.reactant_patterns = reactant_patterns; // Array of strings or objects representing reactants
+        this.reactant_mol = reactant_mol; // Dictionary of reactant molecule ID (e.g. 1, 2) to molecule name
+        this.reactant_mol_components = reactant_mol_components; // Dictionary of reactant component ID (e.g. 1, 2) to component name
+        this.reactant_num_bonds = reactant_num_bonds; // Dictionary of component ID to number of bonds for that component
+        this.product_patterns = product_patterns;
+        this.product_mol = product_mol;
+        this.product_mol_components = product_mol_components;
+        this.product_num_bonds = product_num_bonds;
+        this.product_bonds = product_bonds;
     }
 }
 
@@ -67,4 +75,21 @@ export class InitialCondition {
         this.species = species; // String or object representing the species
         this.value = value; // Numerical value representing the initial concentration/number of the species
     }
+}
+
+export class EvaluateRules {
+    constructor(reactionrules) {
+        this.reactionrules = reactionrules;
+    }
+
+    defineBonds() {
+        for (let rule of this.reactionrules) {
+            console.log(rule);
+            console.log(rule.product_mol);
+            console.log(rule.product_mol_components);
+            console.log(rule.product_num_bonds);
+            console.log(rule.product_bonds);
+        }
+    }
+
 }

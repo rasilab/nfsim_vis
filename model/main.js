@@ -1,5 +1,5 @@
 import { SVG } from './lib/svg.esm.js';
-import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
+import { Model, Monomer, Parameter, Rule, InitialCondition, EvaluateRules } from './model.js';
 import { MoleculeRepresentation, RuleModeling, SiteRepresentation } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 
@@ -49,19 +49,101 @@ function createModelFromJson(jsonData) {
         model.addInitialCondition(new InitialCondition(species.name, parseFloat(species.concentration)));
     });
 
-    // Simplified example of adding ReactionRules as Rules
-    // Note: This does not fully parse the complex structure of ReactionRules
-    // It's simplified for illustration purposes
+    // Should I be parsing the whole model? Does this get redundant?
+    // Note I have not done anything with 'state' (free/blocked) that some reactant/product pattern components have
+    // Note that sometimes different reacting molecules (in ReactantPatterns) both have their info stored as "M1" and "C1"
+    // which gets overwritten with the current menthod, but ProductPatterns should be unique in that regard
     Object.entries(jsonData.ReactionRules).forEach(([ruleId, rule]) => {
         const rate = rule.RR1_RateLaw ? parseFloat(rule.RR1_RateLaw.totalrate) : 0;
-        // Placeholder reactants and products string construction
-        const reactants = "Placeholder";
-        const products = "Placeholder";
-        model.addRule(new Rule(rule.name, reactants, products, rate));
+
+        const rate_name = ruleId + "_RateLaw";
+        const rate_law = rule[rate_name];
+        if ('RateConstants' in rate_law) {
+            var rateConstant = rate_law.RateConstants.RateConstant.value;
+        } else {
+            var rateConstant = 'initial'; // is this generally true? no defined rate constant = initiate?
+        }
+        const rateConst = rateConstant.toString();
+    
+        const reactant_patterns = [];
+        const reactant_mol = {};
+        const reactant_mol_components = {};
+        const reactant_num_bonds = {};
+
+        Object.entries(rule.ReactantPatterns).forEach(([reactant_pattern, reactant_pattern_array]) => {
+            const rp = reactant_pattern.split("_")[1];
+            reactant_patterns.push(rp);
+            Object.entries(reactant_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
+                const mol = molecule.split("_")[molecule.split("_").length - 1];
+                reactant_mol[mol] = molecule_array.name;
+                Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
+                    const molnum = component.split("_")[2]; 
+                    const comp = component.split("_")[component.split("_").length - 1];
+                    const mol_comp = [molnum, comp].join("_")
+                    reactant_mol_components[mol_comp] = component_array.name;
+                    reactant_num_bonds[mol_comp] = component_array.numberOfBonds;
+                });
+            });
+        });
+
+        const product_patterns = [];
+        const product_mol = {};
+        const product_mol_components = {};
+        const product_num_bonds = {};
+        const product_bonds = {};
+
+        Object.entries(rule.ProductPatterns).forEach(([product_pattern, product_pattern_array]) => {
+            const pp = product_pattern.split("_")[1];
+            product_patterns.push(pp);
+            Object.entries(product_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
+                const mol = molecule.split("_")[molecule.split("_").length - 1];
+                product_mol[mol] = molecule_array.name;
+                Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
+                    // const molnum = component.split("_")[2]; 
+                    // const comp = component.split("_")[component.split("_").length - 1];
+                    // const mol_comp = [molnum, comp].join("_")
+                    const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
+                    product_mol_components[mol_comp] = component_array.name;
+                    product_num_bonds[mol_comp] = component_array.numberOfBonds;
+                    if (component_array.state) {
+                        console.log('');
+                    }
+                });
+            });
+
+            try {
+            Object.entries(product_pattern_array.Bonds).forEach(([bond, bond_array]) => {
+                Object.entries(bond_array).forEach(([key, value]) => {
+                    const val = [value.split("_")[1], value.split("_")[2], value.split("_")[3]].join("_")
+                    product_bonds[key] = val;
+                });
+            });
+            } catch (error) {console.log('no value for Bond');}
+        });
+
+        model.addRule(new Rule(rule.name, reactant_patterns, reactant_mol, reactant_mol_components, 
+            reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, 
+            product_bonds, rate, rateConst));
     });
 
     return model;
 }
+
+function get_model_molecules(jsonData) {
+    // Get all molecules in the model
+    const moleculelist = [];
+    Object.entries(jsonData.ReactionRules).forEach(([ruleId, rule]) => {
+        Object.entries(rule.ProductPatterns).forEach(([product_pattern, product_pattern_array]) => {
+            Object.entries(product_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
+                moleculelist.push(molecule_array.name);
+                });
+            });
+        });
+    
+    const uniqueArray = [...new Set(moleculelist)];
+    return [uniqueArray];
+    }
+
 
 function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
     return `${baseDirectory}${moleculeName}.svg`;
@@ -100,39 +182,17 @@ function createMoleculeRepresentation(monomer, index) {
     return moleculeRep;
 }
 
-function createMoleculeInitialState(monomer, index, rr_attrs, rr, rateConstant, moleculelist) {
+function createMoleculeInitialState(reactionrules, monomer, index) {
     const svgContainer = document.getElementById("ruleVisualization");
     const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
-    const rulemodel = new RuleModeling(svgContainer, rr_attrs, rr, rateConstant, svgFilePath);
-    const moleculeRep = rulemodel.initiate_reaction(monomer, index, moleculelist);
-    // const moleculeRep = new MoleculeInitialState(svgContainer, monomer, svgFilePath, index, moleculelist);
-    // moleculeRep.visualize({x: 100, y: 100 + 100 * index});
+    const visualizeRules = new RuleModeling(svgContainer, svgFilePath, reactionrules, monomer, index);
+    const moleculeRep = visualizeRules.visualize_initial_states();
     return moleculeRep;
 }
 
-function iterateReactionRules(jsonData, model) {
-    const svgContainer = document.getElementById("ruleVisualization");
-    const rrs = jsonData.ReactionRules;
-    for (const rr in rrs) {
-
-        const rate_name = rr + "_RateLaw";
-        var rate_law = rrs[rr][rate_name];
-        if ('RateConstants' in rate_law) {
-            var rateConstant = rate_law.RateConstants.RateConstant;
-        } else {
-            var rateConstant = 'initial'; // is this generally true? no defined rate constant = initiate?
-        }
-        var rateConstant = rateConstant;
-
-        const rulemodel = new RuleModeling(svgContainer, rrs[rr], rr, rateConstant);
-        const moleculetypes = rulemodel.make_dictionary_moleculetypes()[0];
-        
-        if (rateConstant == 'initial') {
-            const moleculelist = rulemodel.make_dictionary_moleculetypes()[1];
-            const initialReps = model.monomers.map(
-                (monomer, index) => createMoleculeInitialState(monomer, index, rrs[rr], rr, rateConstant, moleculelist));
-        }
-    }
+function evaluateReactionRules(reactionrules) {
+    const ruleModel = new EvaluateRules(reactionrules);
+    ruleModel.defineBonds();
 }
 
 async function main() {
@@ -140,13 +200,13 @@ async function main() {
     // const xmlUrl = './model_xml/model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
-    console.log(model);
     addSVGContainer();
     const moleculeReps = model.monomers.map(
         (monomer, index) => createMoleculeRepresentation(monomer, index));
-    // const initialReps = model.monomers.map(
-    //     (monomer, index) => createMoleculeInitialState(monomer, index));
-    iterateReactionRules(jsonData, model);
+    const moleculelist = get_model_molecules(jsonData);
+    const initialRep = model.monomers.map(
+        (monomer, index) => createMoleculeInitialState(model.rules, monomer, index));
+    evaluateReactionRules(model.rules);
 }
 
 main();
