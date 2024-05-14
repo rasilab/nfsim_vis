@@ -1,6 +1,6 @@
 import { SVG } from './lib/svg.esm.js';
-import { Model, Monomer, Parameter, Rule, InitialCondition, EvaluateRules } from './model.js';
-import { MoleculeRepresentation, RuleModeling, SiteRepresentation } from './representation.js';
+import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
+import { MoleculeRepresentation, RuleModeling, SiteRepresentation, VisualizeRules } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 
 async function fetchAndProcessXML(url) {
@@ -91,6 +91,7 @@ function createModelFromJson(jsonData) {
         const product_mol_components = {};
         const product_num_bonds = {};
         const product_bonds = {};
+        const product_states = {};
 
         Object.entries(rule.ProductPatterns).forEach(([product_pattern, product_pattern_array]) => {
             const pp = product_pattern.split("_")[1];
@@ -99,15 +100,15 @@ function createModelFromJson(jsonData) {
                 const mol = molecule.split("_")[molecule.split("_").length - 1];
                 product_mol[mol] = molecule_array.name;
                 Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
-                    // const molnum = component.split("_")[2]; 
-                    // const comp = component.split("_")[component.split("_").length - 1];
-                    // const mol_comp = [molnum, comp].join("_")
                     const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
                     product_mol_components[mol_comp] = component_array.name;
                     product_num_bonds[mol_comp] = component_array.numberOfBonds;
                     if (component_array.state) {
-                        console.log('');
+                        product_states[mol_comp] = component_array.state;
                     }
+                    else {
+                        product_states[mol_comp] = null;
+                    };
                 });
             });
 
@@ -118,12 +119,16 @@ function createModelFromJson(jsonData) {
                     product_bonds[key] = val;
                 });
             });
-            } catch (error) {console.log('no value for Bond');}
+            } catch (error) {
+                const key = null; 
+                const val = null; 
+                product_bonds[key] = val;
+            }
         });
 
         model.addRule(new Rule(rule.name, reactant_patterns, reactant_mol, reactant_mol_components, 
             reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, 
-            product_bonds, rate, rateConst));
+            product_bonds, product_states, rate, rateConst));
     });
 
     return model;
@@ -191,7 +196,8 @@ function createMoleculeInitialState(reactionrules, monomer, index) {
 }
 
 function evaluateReactionRules(reactionrules) {
-    const ruleModel = new EvaluateRules(reactionrules);
+    const svgContainer = document.getElementById("ruleVisualization");
+    const ruleModel = new VisualizeRules(svgContainer, reactionrules);
     ruleModel.defineBonds();
 }
 

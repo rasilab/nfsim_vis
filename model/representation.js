@@ -42,7 +42,7 @@ export class RuleModeling extends Representation {
 
             // Calculate position for initial site
             const relativePosition = {
-                // assumes mrna=0 and ribo=1 in model
+                // kind of arbitrary way to offset the molecules
                 x: (this.index * width / 2),
                 y: height / 2 
             };
@@ -50,6 +50,35 @@ export class RuleModeling extends Representation {
         } 
         else {
             console.error("SVG content is empty.");
+        }
+    }
+}
+
+export class VisualizeRules extends Representation {
+    constructor(svgContainer, reactionrules) {
+        super(svgContainer);
+        this.svgContent = '';
+        this.reactionrules = reactionrules;
+    }
+
+    defineBonds() {
+        for (let rule of this.reactionrules) {
+            console.log(rule);
+            console.log(rule.product_mol);
+            console.log(rule.product_mol_components);
+            console.log(rule.product_num_bonds);
+            console.log(rule.product_bonds);
+            console.log(rule.product_states);
+
+            // go straight to product_bonds and get the interacting sites
+            // get the svg file from the M#
+            // get the sites from the key ('PP1_M1_C1') in product_mol_components
+            // check if state is not null using key ('PP1_M1_C1')
+            // add the state as some kind of attribute to be retained, or text?
+            // use SVG to transform the sites (and associated things) onto each other
+            // for any M_Cs that don't form bonds (==0 in product_num_bonds), check if they have states information
+
+
         }
     }
 }
