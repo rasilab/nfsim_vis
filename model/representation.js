@@ -61,25 +61,55 @@ export class VisualizeRules extends Representation {
         this.reactionrules = reactionrules;
     }
 
-    defineBonds() {
+    constructSvgFilePath(moleculeName, baseDirectory = "./svg/") {
+        return `${baseDirectory}${moleculeName}.svg`;
+    }
+
+    async defineBonds() {
         for (let rule of this.reactionrules) {
             console.log(rule);
-            console.log(rule.product_mol);
-            console.log(rule.product_mol_components);
-            console.log(rule.product_num_bonds);
-            console.log(rule.product_bonds);
-            console.log(rule.product_states);
+            console.log('product_mol', rule.product_mol);
+            console.log('product_mol_components', rule.product_mol_components);
+            console.log('product_num_bonds', rule.product_num_bonds);
+            console.log('product_bonds', rule.product_bonds);
+            console.log('product_states', rule.product_states);
 
             // go straight to product_bonds and get the interacting sites
-            // get the svg file from the M#
-            // get the sites from the key ('PP1_M1_C1') in product_mol_components
+            for (let i = 0; i <= Object.keys(rule.product_bonds).length; i++) {
+                console.log(Object.entries(rule.product_bonds)[i]);
+                const interactor = Object.entries(rule.product_bonds)[i][1];
+                // get the svg file from the M#
+                const interacting_mol = rule.product_mol[interactor.split('_')[1]];
+                // get the sites from the key ('PP1_M1_C1') in product_mol_components
+                const interacting_site = rule.product_mol_components[interactor];
+                console.log(interactor, interacting_mol, interacting_site);
+
+                const svgFilePath = this.constructSvgFilePath(interacting_mol);
+                if (!this.svgContent) {
+                    this.svgContent = await fetchSvgContent(svgFilePath);
+                    console.log(svgFilePath);
+                }
+                
+                if (this.svgContent) {
+                    const groupElement = SVG().group()
+                        .addTo(this.svgContainer)
+                    
+                    groupElement.transform({translate: {x:100, y:300}});
+        
+                    const svgDoc = SVG()
+                        .svg(this.svgContent)
+                        .addTo(groupElement);
+        
+                } else {
+                    console.error("SVG content is empty.");
+                }
+            }
+            break;
+        }
             // check if state is not null using key ('PP1_M1_C1')
             // add the state as some kind of attribute to be retained, or text?
             // use SVG to transform the sites (and associated things) onto each other
             // for any M_Cs that don't form bonds (==0 in product_num_bonds), check if they have states information
-
-
-        }
     }
 }
 
