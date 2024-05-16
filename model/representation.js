@@ -8,45 +8,57 @@ export class Representation {
     }
 }
 
-export class RuleModeling extends Representation {
-    constructor(svgContainer, svgFilePath, reactionrules, monomer, index) {
+export class CreateSVGMolecules extends Representation {
+    // create the SVG representation of the molecules including site and pass those groups around
+    constructor(svgContainer, svgFilePath, monomer, index) {
         super(svgContainer);
         this.svgContent = '';
         this.svgFilePath = svgFilePath;
-        this.reactionrules = reactionrules;
         this.molecule = monomer;
         this.index = index;
     }
 
-    async visualize_initial_states() {
+    async CreateInitialStates() {
         this.sites = [];
-        this.position = { x: 100, y: 100 + 100 * this.index};
+        this.position = { x: 700, y: 200 + (100 * this.index)};
 
         if (!this.svgContent) {
             this.svgContent = await fetchSvgContent(this.svgFilePath);
         }
 
         if (this.svgContent) {
-            const groupElement = SVG().group()
-                .addTo(this.svgContainer);
 
-                groupElement.transform({translate: this.position});
-
-            const svgDoc = SVG()
-                .svg(this.svgContent)
+            var drawContext = SVG().addTo(this.svgContainer);
+            var groupElement = drawContext.group();
+            groupElement.svg(this.svgContent).center(this.position.x, this.position.y);
+            const numSites = this.molecule.sites.length;
+            const spacing = groupElement.width() / (numSites + 1); // +1 to not place elements exactly on the edges
+            console.log(this.position.x / (groupElement.width() / 20), this.position.y + groupElement.height() / 2);
+            console.log(spacing);
+            SVG().text(this.molecule.name)
+                .center(this.position.x / (groupElement.width() / 20), this.position.y + groupElement.height() / 2)
+                .attr("text-anchor", "middle")
+                .fill("black")
                 .addTo(groupElement);
-            
-            const moleculeElement = svgDoc.first();
-            const width = moleculeElement.width();
-            const height = moleculeElement.height();
 
-            // Calculate position for initial site
-            const relativePosition = {
-                // kind of arbitrary way to offset the molecules
-                x: (this.index * width / 2),
-                y: height / 2 
-            };
-            this.sites.push(new SiteRepresentation(groupElement, this, this.molecule.sites[0], relativePosition)); 
+            this.molecule.sites.forEach((site, index) => {
+                const relativePosition = {
+                    x: spacing, // +1 so we don't start at 0,
+                    y: groupElement.height() / 2 // Center vertically
+                };
+
+                SVG().circle()
+                    .center(this.position.x, this.position.y)
+                    .radius(5)
+                    .fill("green")
+                    .addTo(groupElement);
+                SVG().text(site)
+                    .move(relativePosition.x, relativePosition.y - 25)
+                    .attr("text-anchor", "middle")
+                    .fill("green")
+                    .addTo(groupElement);
+            });
+
         } 
         else {
             console.error("SVG content is empty.");
@@ -54,62 +66,98 @@ export class RuleModeling extends Representation {
     }
 }
 
-export class VisualizeRules extends Representation {
-    constructor(svgContainer, reactionrules) {
-        super(svgContainer);
-        this.svgContent = '';
-        this.reactionrules = reactionrules;
+export class DefineBonds {
+    constructor() {
+        this.interactorIds = [];
+        this.interactorMols = [];
+        this.interactorSites = [];
     }
 
-    constructSvgFilePath(moleculeName, baseDirectory = "./svg/") {
+    // right now, they are 'linked' by indice, so it may be good to consider null conditions
+    bondInteractors(productMol, productMolComponents, productBonds) {
+        for (let i = 0; i < Object.keys(productBonds).length; i++) {
+            const interactor = Object.entries(productBonds)[i][1]; // 0 is just the word 'site'
+            const interactingMol = productMol[[interactor?.split('_')[0], interactor?.split('_')[1]].join('_')];
+            const interactingSite = productMolComponents[interactor];
+            this.interactorIds.push(interactor);
+            this.interactorMols.push(interactingMol);
+            this.interactorSites.push(interactingSite);
+            }
+        }
+
+    recordReactants() {
+        
+    }
+}
+
+export class VisualizeRules extends Representation {
+    constructor(svgContainer, definedBondsClass, rule, svgBasePath) {
+        super(svgContainer);
+        this.svgContent = '';
+        this.interactome = definedBondsClass;
+        this.svgBasePath = svgBasePath;
+        this.rule = rule;
+    }
+
+    constructSvgFilePath(moleculeName, baseDirectory = this.svgBasePath) {
         return `${baseDirectory}${moleculeName}.svg`;
     }
 
-    async defineBonds() {
-        for (let rule of this.reactionrules) {
-            console.log(rule);
-            console.log('product_mol', rule.product_mol);
-            console.log('product_mol_components', rule.product_mol_components);
-            console.log('product_num_bonds', rule.product_num_bonds);
-            console.log('product_bonds', rule.product_bonds);
-            console.log('product_states', rule.product_states);
+    checkResultantStates(moleculeComponent, productStates) {
+        // check if state is not null using key ('PP1_M1_C1')
+        // add the state as some kind of attribute to be retained, or text?
+        if (productStates[moleculeComponent] != null) {
+            const resultantState = productStates[moleculeComponent]
+            return resultantState;
+        }
+        else {
+            return null;
+        }
+    }
 
-            // go straight to product_bonds and get the interacting sites
-            for (let i = 0; i <= Object.keys(rule.product_bonds).length; i++) {
-                console.log(Object.entries(rule.product_bonds)[i]);
-                const interactor = Object.entries(rule.product_bonds)[i][1];
-                // get the svg file from the M#
-                const interacting_mol = rule.product_mol[interactor.split('_')[1]];
-                // get the sites from the key ('PP1_M1_C1') in product_mol_components
-                const interacting_site = rule.product_mol_components[interactor];
-                console.log(interactor, interacting_mol, interacting_site);
+    async visualizeBonds() {
+        this.position = {x:100, y:300};
 
-                const svgFilePath = this.constructSvgFilePath(interacting_mol);
+        for (let i = 0; i < this.interactome.interactorMols.length; i++) {
+            const interactingMol = this.interactome.interactorMols[i];
+            if (interactingMol != null) {
+                const interactingMolComp = this.interactome.interactorIds[i];
+                const svgFilePath = this.constructSvgFilePath(interactingMol);
+                const interactingSite = this.interactome.interactorSites[i];
+                
                 if (!this.svgContent) {
                     this.svgContent = await fetchSvgContent(svgFilePath);
-                    console.log(svgFilePath);
                 }
                 
                 if (this.svgContent) {
-                    const groupElement = SVG().group()
-                        .addTo(this.svgContainer)
-                    
-                    groupElement.transform({translate: {x:100, y:300}});
-        
-                    const svgDoc = SVG()
-                        .svg(this.svgContent)
+                    var drawContext = SVG().addTo(this.svgContainer);
+                    var groupElement = drawContext.group();
+                    groupElement.svg(this.svgContent);
+                    groupElement.transform({translate: this.position});
+
+                    SVG().text(interactingSite)
+                        .center(this.position.x - groupElement.width()/2, groupElement.height() / 2)
+                        .attr("text-anchor", "middle")
+                        .fill("green")
                         .addTo(groupElement);
-        
-                } else {
-                    console.error("SVG content is empty.");
+
+                    const stateText = this.checkResultantStates(interactingMolComp, this.rule.product_states);
+                    if (stateText != null){
+                        const textElement = SVG().text(stateText)
+                            .x(0)
+                            .y(groupElement.height() / 2)
+                            .attr({ "text-anchor": "end", "fill": "black" })
+                            .addTo(groupElement);
+                    }
+                // console.log(i, this.interactome, interactingSite, interactingMolComp, svgFilePath);
+                this.svgContent = '';
+                // debugger;
                 }
-            }
-            break;
         }
-            // check if state is not null using key ('PP1_M1_C1')
-            // add the state as some kind of attribute to be retained, or text?
-            // use SVG to transform the sites (and associated things) onto each other
-            // for any M_Cs that don't form bonds (==0 in product_num_bonds), check if they have states information
+                // use SVG to transform the sites (and associated things) onto each other
+                // for any M_Cs that don't form bonds (==0 in product_num_bonds), check if they have states information
+        }
+        
     }
 }
 

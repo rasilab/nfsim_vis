@@ -1,6 +1,6 @@
 import { SVG } from './lib/svg.esm.js';
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
-import { MoleculeRepresentation, RuleModeling, SiteRepresentation, VisualizeRules } from './representation.js';
+import { MoleculeRepresentation, CreateSVGMolecules , SiteRepresentation, DefineBonds, VisualizeRules } from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 
 async function fetchAndProcessXML(url) {
@@ -74,12 +74,10 @@ function createModelFromJson(jsonData) {
             const rp = reactant_pattern.split("_")[1];
             reactant_patterns.push(rp);
             Object.entries(reactant_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
-                const mol = molecule.split("_")[molecule.split("_").length - 1];
+                const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
                 reactant_mol[mol] = molecule_array.name;
                 Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
-                    const molnum = component.split("_")[2]; 
-                    const comp = component.split("_")[component.split("_").length - 1];
-                    const mol_comp = [molnum, comp].join("_")
+                    const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
                     reactant_mol_components[mol_comp] = component_array.name;
                     reactant_num_bonds[mol_comp] = component_array.numberOfBonds;
                 });
@@ -97,7 +95,7 @@ function createModelFromJson(jsonData) {
             const pp = product_pattern.split("_")[1];
             product_patterns.push(pp);
             Object.entries(product_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
-                const mol = molecule.split("_")[molecule.split("_").length - 1];
+                const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
                 product_mol[mol] = molecule_array.name;
                 Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
                     const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
@@ -179,26 +177,33 @@ function addSVGContainer() {
 }
 
 
-function createMoleculeRepresentation(monomer, index) {
+function createMoleculeRepresentation(monomer, index, svgBasePath = "./svg/") {
     const svgContainer = document.getElementById("modelVisualization");
-    const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
+    const svgFilePath = constructSvgFilePath(monomer.name, svgBasePath);
     const moleculeRep = new MoleculeRepresentation(svgContainer, monomer, svgFilePath);
     moleculeRep.visualize({ x: 100, y: 100 + 100 * index });
     return moleculeRep;
 }
 
-function createMoleculeInitialState(reactionrules, monomer, index) {
+function createMoleculeInitialState(monomer, index, svgBasePath = "./svg/") {
     const svgContainer = document.getElementById("ruleVisualization");
-    const svgFilePath = constructSvgFilePath(monomer.name, "./svg/");
-    const visualizeRules = new RuleModeling(svgContainer, svgFilePath, reactionrules, monomer, index);
-    const moleculeRep = visualizeRules.visualize_initial_states();
-    return moleculeRep;
+    const svgFilePath = constructSvgFilePath(monomer.name, svgBasePath);
+    const svgMolecules = new CreateSVGMolecules(svgContainer, svgFilePath, monomer, index);
+    const svgMolecule = svgMolecules.CreateInitialStates();
+    return svgMolecule;
 }
 
-function evaluateReactionRules(reactionrules) {
+function evaluateReactionRules(reactionRules, svgBasePath = "./svg/") {
     const svgContainer = document.getElementById("ruleVisualization");
-    const ruleModel = new VisualizeRules(svgContainer, reactionrules);
-    ruleModel.defineBonds();
+    const interactomeByRule = []
+    for (let rule of reactionRules) {
+        const defineBonds = new DefineBonds();
+        defineBonds.bondInteractors(rule.product_mol, rule.product_mol_components, rule.product_bonds);
+        interactomeByRule.push(defineBonds);
+        // const viz = new VisualizeRules(svgContainer, defineBonds, rule, svgBasePath);
+        // viz.visualizeBonds();
+    }
+    return interactomeByRule;
 }
 
 async function main() {
@@ -206,13 +211,22 @@ async function main() {
     // const xmlUrl = './model_xml/model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
+    const svgBasePath = "./svg/";
     addSVGContainer();
     const moleculeReps = model.monomers.map(
-        (monomer, index) => createMoleculeRepresentation(monomer, index));
+        (monomer, index) => createMoleculeRepresentation(monomer, index, svgBasePath));
     const moleculelist = get_model_molecules(jsonData);
-    const initialRep = model.monomers.map(
-        (monomer, index) => createMoleculeInitialState(model.rules, monomer, index));
-    evaluateReactionRules(model.rules);
+    const svgMolecules = []
+    model.monomers.forEach((monomer, index) => {
+        const molecule = createMoleculeInitialState(monomer, index, svgBasePath);
+        svgMolecules.push(molecule);
+      });
+    // const initialRep = model.monomers.map(
+    //     (monomer, index) => createMoleculeInitialState(monomer, index, svgBasePath));
+    console.log(svgMolecules);
+    const listOfInteractors = evaluateReactionRules(model.rules);
+    // console.log(listOfInteractors);
+
 }
 
 main();
