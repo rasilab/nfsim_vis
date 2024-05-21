@@ -30,31 +30,38 @@ export class CreateSVGMolecules {
             
             const moleculeElement = groupElement.first();
             const numSites = this.molecule.sites.length;
-            const spacing = moleculeElement.width() / (numSites + 1); 
+
+            if (numSites == 1) {
+                var spacing = moleculeElement.width() / 2; 
+            }
+            else (spacing = moleculeElement.width() / (numSites + 1));
             
             SVG().text(this.molecule.name)
-                .x(this.position.x)
-                .y(this.position.y)
+                .cx(this.position.x)
+                .cy(this.position.y)
                 .attr("text-anchor", "left")
                 .fill("black")
                 .addTo(groupElement);
 
             this.molecule.sites.forEach((site, index) => {
                 const relativePosition = {
-                    x: (index + 1) * spacing, // +1 so we don't start at 0,
+                    x: (index + 1) * spacing,
                     y: this.position.y + moleculeElement.height() / 2
                 };
-                
                 SVG().circle()
-                    .center(relativePosition.x, relativePosition.y)
+                    // .center(relativePosition.x, relativePosition.y)
+                    .cx(relativePosition.x)
+                    .cy(relativePosition.y)
                     .radius(5)
                     .fill("green")
+                    .id(site)
                     .addTo(groupElement);
 
                 SVG().text(site)
                     .move(relativePosition.x, relativePosition.y)
                     .attr("text-anchor", "middle")
                     .fill("green")
+                    .id(site)
                     .addTo(groupElement);
                 });
             groupElement.id(this.molecule.name);

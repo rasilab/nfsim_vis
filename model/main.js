@@ -134,22 +134,6 @@ function createModelFromJson(jsonData) {
     return model;
 }
 
-function get_model_molecules(jsonData) {
-    // Get all molecules in the model
-    const moleculelist = [];
-    Object.entries(jsonData.ReactionRules).forEach(([ruleId, rule]) => {
-        Object.entries(rule.ProductPatterns).forEach(([product_pattern, product_pattern_array]) => {
-            Object.entries(product_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
-                moleculelist.push(molecule_array.name);
-                });
-            });
-        });
-    
-    const uniqueArray = [...new Set(moleculelist)];
-    return [uniqueArray];
-    }
-
-
 function constructSvgFilePath(moleculeName, baseDirectory = "path/to/svgs/") {
     return `${baseDirectory}${moleculeName}.svg`;
 }
@@ -191,7 +175,7 @@ async function createMoleculeGroups(monomer, index, svgBasePath = "./svg/") {
     const svgFilePath = constructSvgFilePath(monomer.name, svgBasePath);
     const svgContent = await fetchSvgContent(svgFilePath);
     const svgMolecules = await new CreateSVGMolecules(svgFilePath, monomer, index, svgContent);
-    const group = await svgMolecules.CreateMoleculeGroups({x:0, y:100 + (100 * index)});
+    const group = await svgMolecules.CreateMoleculeGroups({x:100, y:100 + (100 * index)});
     // return new Promise((resolve) => {
         //     setTimeout(() => {
             //         resolve(group);
@@ -217,10 +201,16 @@ function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedB
     reactionRules.forEach((rule, index) => {
         const thisBond = definedBonds[index];
         for (let i = 0; i < thisBond.interactorIds.length; i ++) {
+            const thisInteractorMol = thisBond.interactorMols[i];
             const groupElement = svgGroupsList[i];
             groupElement.addTo(svgContainer);
-            const path = groupElement.find('path').attr('d');
-            console.log(i, rule.name, groupElement, path);
+            console.log(groupElement.node);
+            console.log(thisInteractorMol);
+            console.log(rule, thisBond);
+            const svgSites = groupElement.find('circle');
+            for (let i = 0; i < svgSites.length; i++) {
+                console.log(svgSites[i].node.id, svgSites[i].cx(), svgSites[i].cy());
+            }
         }
     });
 }
@@ -242,6 +232,7 @@ async function main() {
     const svgBasePath = "./svg/";
     // const xmlUrl = './model_xml/model.xml';
     const jsonData = await fetchAndProcessXML(xmlUrl);
+    console.log(jsonData);
     const model = await createModelFromJson(jsonData);
     const definedBonds = defineBondsFromReactionRules(model.rules);
     addSVGContainer();
