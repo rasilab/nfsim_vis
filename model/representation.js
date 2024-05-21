@@ -8,61 +8,61 @@ export class Representation {
     }
 }
 
-export class CreateSVGMolecules extends Representation {
+export class CreateSVGMolecules {
     // create the SVG representation of the molecules including site and pass those groups around
-    constructor(svgContainer, svgFilePath, monomer, index) {
-        super(svgContainer);
-        this.svgContent = '';
+    constructor(svgFilePath, monomer, index, svgContent) {
+        this.svgContent = svgContent;
         this.svgFilePath = svgFilePath;
         this.molecule = monomer;
         this.index = index;
     }
 
-    async CreateInitialStates() {
-        this.sites = [];
-        this.position = { x: 700, y: 200 + (100 * this.index)};
-
-        if (!this.svgContent) {
-            this.svgContent = await fetchSvgContent(this.svgFilePath);
-        }
-
+    CreateMoleculeGroups(position) {
+        this.position = position;
+        const groupElement = '';
+        
         if (this.svgContent) {
-
-            var drawContext = SVG().addTo(this.svgContainer);
-            var groupElement = drawContext.group();
-            groupElement.svg(this.svgContent).center(this.position.x, this.position.y);
+            // const drawContext = SVG().addTo(this.svgContainer);
+            const drawContext = SVG();
+            const groupElement = drawContext.group();
+            groupElement.svg(this.svgContent);
+            groupElement.y(this.position.y);
+            
+            const moleculeElement = groupElement.first();
             const numSites = this.molecule.sites.length;
-            const spacing = groupElement.width() / (numSites + 1); // +1 to not place elements exactly on the edges
-            console.log(this.position.x / (groupElement.width() / 20), this.position.y + groupElement.height() / 2);
-            console.log(spacing);
+            const spacing = moleculeElement.width() / (numSites + 1); 
+            
             SVG().text(this.molecule.name)
-                .center(this.position.x / (groupElement.width() / 20), this.position.y + groupElement.height() / 2)
-                .attr("text-anchor", "middle")
+                .x(this.position.x)
+                .y(this.position.y)
+                .attr("text-anchor", "left")
                 .fill("black")
                 .addTo(groupElement);
 
             this.molecule.sites.forEach((site, index) => {
                 const relativePosition = {
-                    x: spacing, // +1 so we don't start at 0,
-                    y: groupElement.height() / 2 // Center vertically
+                    x: (index + 1) * spacing, // +1 so we don't start at 0,
+                    y: this.position.y + moleculeElement.height() / 2
                 };
-
+                
                 SVG().circle()
-                    .center(this.position.x, this.position.y)
+                    .center(relativePosition.x, relativePosition.y)
                     .radius(5)
                     .fill("green")
                     .addTo(groupElement);
+
                 SVG().text(site)
-                    .move(relativePosition.x, relativePosition.y - 25)
+                    .move(relativePosition.x, relativePosition.y)
                     .attr("text-anchor", "middle")
                     .fill("green")
                     .addTo(groupElement);
-            });
-
-        } 
-        else {
-            console.error("SVG content is empty.");
-        }
+                });
+            groupElement.id(this.molecule.name);
+            return groupElement;
+            }
+            else {
+                console.error("SVG content is empty.");
+            }
     }
 }
 
@@ -84,23 +84,14 @@ export class DefineBonds {
             this.interactorSites.push(interactingSite);
             }
         }
-
-    recordReactants() {
-        
-    }
 }
 
-export class VisualizeRules extends Representation {
-    constructor(svgContainer, definedBondsClass, rule, svgBasePath) {
+export class VisualizeRules extends Representation{
+    constructor(svgContainer, definedBondsClass, rule, svgGroups) {
         super(svgContainer);
-        this.svgContent = '';
         this.interactome = definedBondsClass;
-        this.svgBasePath = svgBasePath;
         this.rule = rule;
-    }
-
-    constructSvgFilePath(moleculeName, baseDirectory = this.svgBasePath) {
-        return `${baseDirectory}${moleculeName}.svg`;
+        this.svgGroups = svgGroups;
     }
 
     checkResultantStates(moleculeComponent, productStates) {
@@ -115,50 +106,49 @@ export class VisualizeRules extends Representation {
         }
     }
 
-    async visualizeBonds() {
-        this.position = {x:100, y:300};
-
-        for (let i = 0; i < this.interactome.interactorMols.length; i++) {
-            const interactingMol = this.interactome.interactorMols[i];
-            if (interactingMol != null) {
-                const interactingMolComp = this.interactome.interactorIds[i];
-                const svgFilePath = this.constructSvgFilePath(interactingMol);
-                const interactingSite = this.interactome.interactorSites[i];
+    async visualizeBonds(position) {
+        this.position = position;
+        // console.log(this.svgGroups);
+        // for (let i = 0; i < this.interactome.interactorMols.length; i++) {
+        //     const interactingMol = this.interactome.interactorMols[i];
+        //     if (interactingMol != null) {
+        //         const interactingMolComp = this.interactome.interactorIds[i];
+        //         const svgFilePath = this.constructSvgFilePath(interactingMol);
+        //         const interactingSite = this.interactome.interactorSites[i];
                 
-                if (!this.svgContent) {
-                    this.svgContent = await fetchSvgContent(svgFilePath);
-                }
+        //         if (!this.svgContent) {
+        //             this.svgContent = await fetchSvgContent(svgFilePath);
+        //         }
                 
-                if (this.svgContent) {
-                    var drawContext = SVG().addTo(this.svgContainer);
-                    var groupElement = drawContext.group();
-                    groupElement.svg(this.svgContent);
-                    groupElement.transform({translate: this.position});
+        //         if (this.svgContent) {
+        //             var drawContext = SVG().addTo(this.svgContainer);
+        //             var groupElement = drawContext.group();
+        //             groupElement.svg(this.svgContent);
+        //             groupElement.transform({translate: this.position});
 
-                    SVG().text(interactingSite)
-                        .center(this.position.x - groupElement.width()/2, groupElement.height() / 2)
-                        .attr("text-anchor", "middle")
-                        .fill("green")
-                        .addTo(groupElement);
+        //             SVG().text(interactingSite)
+        //                 .center(this.position.x - groupElement.width()/2, groupElement.height() / 2)
+        //                 .attr("text-anchor", "middle")
+        //                 .fill("green")
+        //                 .addTo(groupElement);
 
-                    const stateText = this.checkResultantStates(interactingMolComp, this.rule.product_states);
-                    if (stateText != null){
-                        const textElement = SVG().text(stateText)
-                            .x(0)
-                            .y(groupElement.height() / 2)
-                            .attr({ "text-anchor": "end", "fill": "black" })
-                            .addTo(groupElement);
-                    }
-                // console.log(i, this.interactome, interactingSite, interactingMolComp, svgFilePath);
-                this.svgContent = '';
-                // debugger;
-                }
-        }
+        //             const stateText = this.checkResultantStates(interactingMolComp, this.rule.product_states);
+        //             if (stateText != null){
+        //                 const textElement = SVG().text(stateText)
+        //                     .x(0)
+        //                     .y(groupElement.height() / 2)
+        //                     .attr({ "text-anchor": "end", "fill": "black" })
+        //                     .addTo(groupElement);
+        //             }
+        //         // console.log(i, this.interactome, interactingSite, interactingMolComp, svgFilePath);
+        //         this.svgContent = '';
+        //         // debugger;
+                // }
+        // }
                 // use SVG to transform the sites (and associated things) onto each other
                 // for any M_Cs that don't form bonds (==0 in product_num_bonds), check if they have states information
         }
         
-    }
 }
 
 export class MoleculeRepresentation extends Representation {
