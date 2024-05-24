@@ -214,8 +214,29 @@ function getSVGByName(svgGroupsList, name) {
     
     }
 }
-        
-function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedBonds, userInput) {
+
+function animateSVG(movingGroup, line, distance, duration, x1, y1, x2, y2) {
+    return new Promise(resolve => {
+        let mx, my, newX, newY;
+        movingGroup.animate(duration).during(function(pos) {
+            // Interpolate the x and y coordinates
+            mx = x1 + (x2 - x1) * pos;
+            my = y1 + (y2 - y1) * pos;
+            movingGroup.transform({translate: {x: mx - movingGroup.bbox().cx, y: my - movingGroup.bbox().cy}});
+        }).after(() => {
+            // newX = mx - movingGroup.bbox().cx;
+            // newY = my - movingGroup.bbox().cy;
+            // console.log(movingGroup);
+            // console.log(mx - movingGroup.bbox().cx, my - movingGroup.bbox().cy);
+            newX = movingGroup.x();
+            newY = movingGroup.y();
+            // console.log(newX, newY);
+            resolve([newX, newY]);
+        });
+    });
+}
+
+async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedBonds, userInput) {
     const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
     const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
     const whichStaying = getIndexByKeyValue(userInput, 'type', 'stayingGroup');
@@ -241,25 +262,24 @@ function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedB
         const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
         const x1 = movingSiteGroup.cx() + movingGroup.transform().translateX;
         const y1 = movingSiteGroup.cy() + movingGroup.transform().translateY;
-        
         const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
         const moveToSVGSites = stayingGroup.find('circle');
         const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
         const x2 = stayingSiteGroup.cx() + stayingGroup.transform().translateX;
         const y2 = stayingSiteGroup.cy() + stayingGroup.transform().translateY;
         
-        const line = SVG().line(x1, y1, x2, y2).stroke({width:1, color:'black'}).addTo(svgContainer);
+        const line = SVG().line(x1, y1, x2, y2).stroke({width:1}).addTo(svgContainer);
         const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
         const duration = distance * 20; // increase number to increase how long it takes to move
 
-        movingGroup.animate(duration).during(function(pos) {
-            // Interpolate the x and y coordinates
-            const mx = x1 + (x2 - x1) * pos;
-            const my = y1 + (y2 - y1) * pos;
-            movingGroup.transform({translate: {x: mx, y: my}});
-        });
-
-        break;
+        const result = await animateSVG(movingGroup, line, distance, duration, x1, y1, x2, y2);
+        let newX = result[0];
+        let newY = result[1];
+        
+        movingGroup
+            .x(newX)
+            .y(newY);
+        // break;
     }
 }
 
