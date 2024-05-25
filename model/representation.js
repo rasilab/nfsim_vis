@@ -9,13 +9,119 @@ export class Representation {
 
 export class CreateSVGMolecules {
     // create the SVG representation of the molecules including site and pass those groups around
+    constructor(monomer, simulation, userInput, svgContent) {
+        this.svgContent = svgContent;
+        this.molecule = monomer;
+        this.simulation = simulation;
+        this.userInput = userInput;
+    }
+
+    getTypeIdFromMolName(moleculeTypes, molName) {
+        for (let i = 0; i < moleculeTypes.length; i++) {
+            if (moleculeTypes[i].name === molName) {
+                return moleculeTypes[i].typeID;
+            }
+        }
+    }
+
+    getIndexByKeyValue(userInputList, key, value) {
+        for (let i = 0; i < userInputList.length; i++) {
+            if (userInputList[i][key] === value) {
+                return i;
+            }
+        }
+    }
+
+    getSomethingByName(simulationJSON, value) {
+        const array = {};
+        for (let i = 0; i < simulationJSON.length; i++) {
+            if (simulationJSON[i].name === value) {
+                const typeID = simulationJSON[i].typeID;
+                array[typeID] = value;
+            }
+        }
+        return array;
+    }
+    
+    getKeysByValue(obj, value) {
+        return parseInt(Object.keys(obj).filter(key => obj[key] === value));
+    }
+
+    getNumParticlesByTypeID(initialState, typeID) {
+        for (let i = 0; i < initialState.length; i++) {
+            if (initialState[i][0] == typeID) {
+                return initialState[i][1];
+            }
+        }
+    }
+
+    CreateSVGMoleculeGroups() {
+        const initialState = this.simulation["simulation"]["initialState"]["molecule_array"];
+        const moleculeTypes = this.simulation["simulation"]["molecule_types"];
+
+        const molArray = this.getSomethingByName(moleculeTypes, this.molecule.name);
+        const molTypeId = this.getTypeIdFromMolName(moleculeTypes, this.molecule.name);
+        const numInitialParticles = this.getNumParticlesByTypeID(initialState, molTypeId);
+
+        if (this.svgContent) {
+            const groupElements = [];
+            for (let i = 0; i < numInitialParticles; i++) {
+                const groupElement = SVG().group();
+                groupElement.svg(this.svgContent);
+                
+                const moleculeElement = groupElement.first();
+                const numSites = this.molecule.sites.length;
+
+                if (numSites == 1) {
+                    var spacing = moleculeElement.width() / 2; 
+                }
+                else (spacing = moleculeElement.width() / (numSites + 1));
+                
+                groupElement.text(this.molecule.name)
+                    .attr("text-anchor", "left")
+                    .fill("black");
+
+                this.molecule.sites.forEach((site, index) => {
+                    const relativePosition = {
+                        x: (index + 1) * spacing,
+                        y: moleculeElement.height() / 2
+                    };
+                    groupElement.circle()
+                        .cx(relativePosition.x)
+                        .cy(relativePosition.y)
+                        .radius(5)
+                        .fill("green")
+                        .id(site);
+
+                    groupElement.text(site)
+                        .x(relativePosition.x)
+                        .y(relativePosition.y)
+                        .attr("text-anchor", "middle")
+                        .fill("green")
+                        .id(site);
+                    });
+                const svgMolId = [this.molecule.name, i].join('_');
+                groupElement.id(svgMolId);
+                groupElements.push(groupElement);
+            }
+            const typeIdGroupsArr = {}
+            typeIdGroupsArr[molTypeId] = groupElements;
+            return typeIdGroupsArr;
+            }
+            else {
+                console.error("SVG content is empty.");
+            }
+    }
+}
+
+export class CreateSVGModelMolecules {
     constructor(monomer, index, svgContent) {
         this.svgContent = svgContent;
         this.molecule = monomer;
         this.index = index;
     }
 
-    CreateMoleculeGroups() {
+    CreateModelMoleculeGroups() {
         
         if (this.svgContent) {
             const groupElement = SVG().group();
@@ -60,7 +166,7 @@ export class CreateSVGMolecules {
             else {
                 console.error("SVG content is empty.");
             }
-    }
+        }
 }
 
 export class DefineBonds {
