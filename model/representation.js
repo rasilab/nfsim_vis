@@ -214,13 +214,12 @@ export class MoleculeRepresentation extends Representation {
     constructor(svgContainer, molecule, svgFilePath) {
         super(svgContainer);
         this.molecule = molecule;
-        this.position = { x: 0, y: 0 }; // Default position
         this.sites = []; // Stores SiteRepresentation instances
         this.svgContent = ''; // Placeholder for SVG content
         this.svgFilePath = svgFilePath;
     }
 
-    async visualize(position) {
+    async visualize(position = { x: 0, y: 0 }) {
         this.position = position; // Store the position
 
 

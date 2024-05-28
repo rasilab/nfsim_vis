@@ -160,6 +160,17 @@ function addSVGContainer() {
         .text('Rule Visualizer')
         .move(svgContainer2.width() / 2, 20)
         .font({ size: 20, anchor: 'middle' });
+
+    const svgContainer3 = SVG()
+        .addTo('body')
+        .size(600, 600)
+        .css('border', '1px solid lightgray')
+        .css('margin-left', '50px')
+        .attr('id', 'simulationVisualization');
+    svgContainer3
+        .text('Simulation Visualizer')
+        .move(svgContainer3.width() / 2, 20)
+        .font({ size: 20, anchor: 'middle' });
 }
 
 
@@ -223,19 +234,30 @@ function getSVGByName(svgGroupsList, name) {
     }
 }
 
-function animateSVG(movingGroup, duration, x1, y1, x2, y2) {
+function animateSVG(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2) {
     return new Promise(resolve => {
         let mx, my, newX, newY;
         movingGroup.animate(duration).during(function(pos) {
             // Interpolate the x and y coordinates
             mx = x1 + (x2 - x1) * pos;
             my = y1 + (y2 - y1) * pos;
-            movingGroup.transform({translate: {x: mx - movingGroup.bbox().cx, y: my - movingGroup.bbox().cy}});
+            movingGroup.transform({translate: {x: mx - movingSiteGroup.cx(), y: my - movingSiteGroup.cy()}});
         }).after(() => {
             newX = movingGroup.x();
             newY = movingGroup.y();
             resolve([newX, newY]);
         });
+    });
+}
+
+function animateSVGTermination(movingGroup, duration, x1, y1, x2, y2) {
+    return new Promise(resolve => {
+        let mx, my;
+        movingGroup.animate(duration).during(function(pos) {
+            mx = x1 + (x2 - x1) * pos;
+            my = y1 + (y2 - y1) * pos;
+            movingGroup.transform({translate: {x: mx - movingGroup.bbox().x, y: my - movingGroup.bbox().y}});
+        })
     });
 }
 
@@ -247,11 +269,15 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, de
     const movingGroup = getSVGByName(svgGroupsList, movingMolName);
     const stayingGroup = getSVGByName(svgGroupsList, stayingMolName);
     const svgContainer = document.getElementById("ruleVisualization");
+    const containerWidth = svgContainer.getBoundingClientRect().width;
+    const containerHeight = svgContainer.getBoundingClientRect().height;
+    const stayingPos = {x: (containerWidth / 2) - (stayingGroup.width()/2), y: (containerHeight / 2) - (stayingGroup.height()/2)};
+    const movingPos = {x: (containerWidth / 4) - (movingGroup.width()/2), y: (containerHeight / 4) - (movingGroup.height()/2)};
     
     movingGroup.addTo(svgContainer);
     stayingGroup.addTo(svgContainer);
-    movingGroup.transform({translate: {x: 100, y: 300}});
-    stayingGroup.transform({translate: {x: 100, y: 100}});
+    movingGroup.transform({translate: movingPos});
+    stayingGroup.transform({translate: stayingPos});
     
     //there should be as many definedBonds as there are reactionRules
     //definedBonds just may make it a bit easier to extract info from
@@ -259,8 +285,14 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, de
         const rule = reactionRules[index];
         const thisBond = definedBonds[index];
         if (thisBond.interactorMols.length === 1) {
-            if (thisBond.interactorMols[0] === null) {
-            continue; // end of reaction, no bonds
+            if (thisBond.interactorMols[0] === undefined || thisBond.interactorMols[0] === null) {
+                const x1 = movingGroup.transform().translateX;
+                const y1 = movingGroup.transform().translateY;
+                const x2 = movingGroup.transform().translateX + 50; 
+                const y2 = movingGroup.transform().translateY - 50; 
+                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const duration = distance * 20; 
+                const result = await animateSVGTermination(movingGroup, duration, x1, y1, x2, y2);
             }
         }
         else {
@@ -277,14 +309,7 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, de
             
             const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
             const duration = distance * 20; // increase number to increase how long it takes to move
-
-            const result = await animateSVG(movingGroup, duration, x1, y1, x2, y2);
-            let newX = result[0];
-            let newY = result[1];
-
-            movingGroup
-                .x(newX)
-                .y(newY);
+            const result = await animateSVG(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2);
         }
     }
 }
@@ -307,8 +332,14 @@ function getSVGListByTypeId(svgGroupsList, typeId) {
     }
 }
 
+function getValueByKey(obj, key) {
+    if (obj.hasOwnProperty(key)) {
+        return obj[key];
+    }
+}
+
 async function iterateAndVisualizeSimulationFirings(svgGroupsList, firings, moleculeTypes, userInput) {
-    const svgContainer = document.getElementById("ruleVisualization");
+    const svgContainer = document.getElementById("simulationVisualization");
     const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
     const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
     const movingMolTypeId = getTypeIdFromMolName(moleculeTypes, movingMolName);
@@ -317,18 +348,31 @@ async function iterateAndVisualizeSimulationFirings(svgGroupsList, firings, mole
     const stayingMolTypeId = getTypeIdFromMolName(moleculeTypes, stayingMolName);
     const movingGroup = getSVGListByTypeId(svgGroupsList, movingMolTypeId);
     const stayingGroup = getSVGListByTypeId(svgGroupsList, stayingMolTypeId);
+    const containerWidth = svgContainer.getBoundingClientRect().width;
+    const containerHeight = svgContainer.getBoundingClientRect().height;
 
-    for (let i = 0; i < movingGroup.length; i++) {
-        movingGroup[i].addTo(svgContainer);
-        movingGroup[i].transform({translate: {x: 20 * (i+1), y: 50 * (i+1)}});
-        console.log(movingGroup[i]);
+    var position;
+    // center the staying group to the container
+    for (let i = 0; i < stayingGroup.length; i++) {
+        position = {x: (containerWidth / 2) - (stayingGroup[i].width()/2), y: (containerHeight / 2) - (stayingGroup[i].height()/2)};
+        stayingGroup[i].addTo(svgContainer);
+        stayingGroup[i].transform({translate: position});
     }
 
-    // stayingGroup.addTo(svgContainer);
-    // stayingGroup.transform({translate: {x: 100, y: 100}});
+    // set the stack of moving groups somewhere in the corner or to the side
+    for (let i = 0; i < movingGroup.length; i++) {
+        movingGroup[i].addTo(svgContainer);
+        position = {x: (containerWidth / 4) - (movingGroup[i].width()/2), y: (containerHeight / 4) - (movingGroup[i].height()/2)};
+        movingGroup[i].transform({translate: position});
+    }
     
     for (let index = 0; index < firings.length; index++) {
-        // const rule = reactionRules[index];
+        const firing = firings[index];
+        console.log(firing);
+        const props = getValueByKey(firing, 'props');
+        const ops = getValueByKey(firing, 'ops');
+        console.log(props, ops);
+        // break;
         // const thisBond = definedBonds[index];
         // if (thisBond.interactorMols.length === 1) {
         //     if (thisBond.interactorMols[0] === null) {
@@ -377,11 +421,11 @@ async function main() {
     const moleculeReps = model.monomers.map(
         (monomer, index) => createMoleculeRepresentation(monomer, index, svgBasePath));
     
-    // const promisesModel = model.monomers.map(async (monomer, index) => {
-    //     return await createMoleculeModelGroups(monomer, index, svgBasePath); 
-    // });
-    // const svgMoleculeGroupsModel =  await Promise.all(promisesModel);
-    // iterateAndVisualizeReactionRules(model.rules, svgMoleculeGroupsModel, definedBonds, userInput);
+    const promisesModel = model.monomers.map(async (monomer, index) => {
+        return await createMoleculeModelGroups(monomer, index, svgBasePath); 
+    });
+    const svgMoleculeGroupsModel =  await Promise.all(promisesModel);
+    iterateAndVisualizeReactionRules(model.rules, svgMoleculeGroupsModel, definedBonds, userInput);
 
     const promises = model.monomers.map(async (monomer) => {
         return await createMoleculeGroups(monomer, simulation, userInput, svgBasePath); 
