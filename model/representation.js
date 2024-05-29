@@ -65,7 +65,7 @@ export class CreateSVGMolecules {
 
         if (this.svgContent) {
             const groupElements = [];
-            for (let i = 0; i < numInitialParticles; i++) {
+            for (let i = 0; i <= numInitialParticles+1; i++) { //model.json says there should be 100 particles (0-99), but firings includes one named 101, so we need (0-101)
                 const groupElement = SVG().group();
                 groupElement.svg(this.svgContent);
                 
