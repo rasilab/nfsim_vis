@@ -54,7 +54,7 @@ export class Parameter {
 }
 
 export class Rule {
-    constructor(name, reactant_patterns, reactant_mol, reactant_mol_components, reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, product_bonds, product_states, rate, rateConstant) {
+    constructor(name, reactant_patterns, reactant_mol, reactant_mol_components, reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, product_bonds, product_states, rate, rateConstant, operations) {
         this.name = name;
         this.rate = rate; // Numerical value representing the rate of the reaction
         this.rateConstant = rateConstant; // String for the rate parameter of that rule
@@ -68,6 +68,7 @@ export class Rule {
         this.product_num_bonds = product_num_bonds;
         this.product_bonds = product_bonds;
         this.product_states = product_states; // Dictionary of component ID to state
+        this.operations = operations;
     }
 }
 

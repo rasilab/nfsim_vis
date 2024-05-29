@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created by BioNetGen 2.8.5  -->
+<sbml xmlns="http://www.sbml.org/sbml/level3" level="3" version="1">
+  <model id="model">
+    <ListOfParameters>
+      <Parameter id="l_ribo" type="Constant" value="1" expr="1"/>
+      <Parameter id="l_mrna" type="Constant" value="3" expr="3"/>
+      <Parameter id="k_init" type="Constant" value="1" expr="1"/>
+      <Parameter id="k_elong" type="Constant" value="1" expr="1"/>
+      <Parameter id="k_term" type="Constant" value="1" expr="1"/>
+      <Parameter id="n_mrna_0" type="Constant" value="1" expr="1"/>
+      <Parameter id="n_ribo_0" type="Constant" value="100" expr="100"/>
+    </ListOfParameters>
+    <ListOfMoleculeTypes>
+      <MoleculeType id="mrna">
+        <ListOfComponentTypes>
+          <ComponentType id="p0">
+            <ListOfAllowedStates>
+              <AllowedState id="free"/>
+              <AllowedState id="blocked"/>
+            </ListOfAllowedStates>
+          </ComponentType>
+          <ComponentType id="p1"/>
+          <ComponentType id="p2"/>
+        </ListOfComponentTypes>
+      </MoleculeType>
+      <MoleculeType id="ribosome">
+        <ListOfComponentTypes>
+          <ComponentType id="asite"/>
+        </ListOfComponentTypes>
+      </MoleculeType>
+    </ListOfMoleculeTypes>
+    <ListOfCompartments>
+    </ListOfCompartments>
+    <ListOfSpecies>
+      <Species id="S1"  concentration="n_mrna_0" name="mrna(p0~free,p1,p2)">
+        <ListOfMolecules>
+          <Molecule id="S1_M1" name="mrna">
+            <ListOfComponents>
+              <Component id="S1_M1_C1" name="p0" state="free" numberOfBonds="0"/>
+              <Component id="S1_M1_C2" name="p1" numberOfBonds="0"/>
+              <Component id="S1_M1_C3" name="p2" numberOfBonds="0"/>
+            </ListOfComponents>
+          </Molecule>
+        </ListOfMolecules>
+      </Species>
+      <Species id="S2"  concentration="n_ribo_0" name="ribosome(asite)">
+        <ListOfMolecules>
+          <Molecule id="S2_M1" name="ribosome">
+            <ListOfComponents>
+              <Component id="S2_M1_C1" name="asite" numberOfBonds="0"/>
+            </ListOfComponents>
+          </Molecule>
+        </ListOfMolecules>
+      </Species>
+    </ListOfSpecies>
+    <ListOfReactionRules>
+      <ReactionRule id="RR1" name="initiate" symmetry_factor="1">
+        <ListOfReactantPatterns>
+          <ReactantPattern id="RR1_RP1">
+            <ListOfMolecules>
+              <Molecule id="RR1_RP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR1_RP1_M1_C1" name="asite" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+          </ReactantPattern>
+          <ReactantPattern id="RR1_RP2">
+            <ListOfMolecules>
+              <Molecule id="RR1_RP2_M1" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR1_RP2_M1_C1" name="p0" state="free" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+          </ReactantPattern>
+        </ListOfReactantPatterns>
+        <ListOfProductPatterns>
+          <ProductPattern id="RR1_PP1">
+            <ListOfMolecules>
+              <Molecule id="RR1_PP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR1_PP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR1_PP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR1_PP1_M2_C1" name="p0" state="blocked" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR1_PP1_B1" site1="RR1_PP1_M1_C1" site2="RR1_PP1_M2_C1"/>
+            </ListOfBonds>
+          </ProductPattern>
+        </ListOfProductPatterns>
+        <RateLaw id="RR1_RateLaw" type="Function" name="_rateLaw1" totalrate="1">
+          <ListOfArguments>
+          </ListOfArguments>
+        </RateLaw>
+        <Map>
+          <MapItem sourceID="RR1_RP1_M1" targetID="RR1_PP1_M1"/>
+          <MapItem sourceID="RR1_RP1_M1_C1" targetID="RR1_PP1_M1_C1"/>
+          <MapItem sourceID="RR1_RP2_M1" targetID="RR1_PP1_M2"/>
+          <MapItem sourceID="RR1_RP2_M1_C1" targetID="RR1_PP1_M2_C1"/>
+        </Map>
+        <ListOfOperations>
+          <StateChange site="RR1_RP2_M1_C1" finalState="blocked"/>
+          <AddBond site1="RR1_RP1_M1_C1" site2="RR1_RP2_M1_C1"/>
+        </ListOfOperations>
+      </ReactionRule>
+      <ReactionRule id="RR2" name="elongate_1" symmetry_factor="1">
+        <ListOfReactantPatterns>
+          <ReactantPattern id="RR2_RP1">
+            <ListOfMolecules>
+              <Molecule id="RR2_RP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR2_RP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR2_RP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR2_RP1_M2_C1" name="p0" state="blocked" numberOfBonds="1"/>
+                  <Component id="RR2_RP1_M2_C2" name="p1" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR2_RP1_B1" site1="RR2_RP1_M1_C1" site2="RR2_RP1_M2_C1"/>
+            </ListOfBonds>
+          </ReactantPattern>
+        </ListOfReactantPatterns>
+        <ListOfProductPatterns>
+          <ProductPattern id="RR2_PP1">
+            <ListOfMolecules>
+              <Molecule id="RR2_PP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR2_PP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR2_PP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR2_PP1_M2_C1" name="p0" state="free" numberOfBonds="0"/>
+                  <Component id="RR2_PP1_M2_C2" name="p1" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR2_PP1_B1" site1="RR2_PP1_M1_C1" site2="RR2_PP1_M2_C2"/>
+            </ListOfBonds>
+          </ProductPattern>
+        </ListOfProductPatterns>
+        <RateLaw id="RR2_RateLaw" type="Ele" totalrate="0">
+          <ListOfRateConstants>
+            <RateConstant value="k_elong"/>
+          </ListOfRateConstants>
+        </RateLaw>
+        <Map>
+          <MapItem sourceID="RR2_RP1_M1" targetID="RR2_PP1_M1"/>
+          <MapItem sourceID="RR2_RP1_M1_C1" targetID="RR2_PP1_M1_C1"/>
+          <MapItem sourceID="RR2_RP1_M2" targetID="RR2_PP1_M2"/>
+          <MapItem sourceID="RR2_RP1_M2_C1" targetID="RR2_PP1_M2_C1"/>
+          <MapItem sourceID="RR2_RP1_M2_C2" targetID="RR2_PP1_M2_C2"/>
+        </Map>
+        <ListOfOperations>
+          <StateChange site="RR2_RP1_M2_C1" finalState="free"/>
+          <DeleteBond site1="RR2_RP1_M1_C1" site2="RR2_RP1_M2_C1" ensureConnected="1"/>
+          <AddBond site1="RR2_RP1_M1_C1" site2="RR2_RP1_M2_C2"/>
+        </ListOfOperations>
+      </ReactionRule>
+      <ReactionRule id="RR3" name="elongate_2" symmetry_factor="1">
+        <ListOfReactantPatterns>
+          <ReactantPattern id="RR3_RP1">
+            <ListOfMolecules>
+              <Molecule id="RR3_RP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR3_RP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR3_RP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR3_RP1_M2_C1" name="p1" numberOfBonds="1"/>
+                  <Component id="RR3_RP1_M2_C2" name="p2" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR3_RP1_B1" site1="RR3_RP1_M1_C1" site2="RR3_RP1_M2_C1"/>
+            </ListOfBonds>
+          </ReactantPattern>
+        </ListOfReactantPatterns>
+        <ListOfProductPatterns>
+          <ProductPattern id="RR3_PP1">
+            <ListOfMolecules>
+              <Molecule id="RR3_PP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR3_PP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR3_PP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR3_PP1_M2_C1" name="p1" numberOfBonds="0"/>
+                  <Component id="RR3_PP1_M2_C2" name="p2" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR3_PP1_B1" site1="RR3_PP1_M1_C1" site2="RR3_PP1_M2_C2"/>
+            </ListOfBonds>
+          </ProductPattern>
+        </ListOfProductPatterns>
+        <RateLaw id="RR3_RateLaw" type="Ele" totalrate="0">
+          <ListOfRateConstants>
+            <RateConstant value="k_elong"/>
+          </ListOfRateConstants>
+        </RateLaw>
+        <Map>
+          <MapItem sourceID="RR3_RP1_M1" targetID="RR3_PP1_M1"/>
+          <MapItem sourceID="RR3_RP1_M1_C1" targetID="RR3_PP1_M1_C1"/>
+          <MapItem sourceID="RR3_RP1_M2" targetID="RR3_PP1_M2"/>
+          <MapItem sourceID="RR3_RP1_M2_C1" targetID="RR3_PP1_M2_C1"/>
+          <MapItem sourceID="RR3_RP1_M2_C2" targetID="RR3_PP1_M2_C2"/>
+        </Map>
+        <ListOfOperations>
+          <DeleteBond site1="RR3_RP1_M1_C1" site2="RR3_RP1_M2_C1" ensureConnected="1"/>
+          <AddBond site1="RR3_RP1_M1_C1" site2="RR3_RP1_M2_C2"/>
+        </ListOfOperations>
+      </ReactionRule>
+      <ReactionRule id="RR4" name="terminate" symmetry_factor="1">
+        <ListOfReactantPatterns>
+          <ReactantPattern id="RR4_RP1">
+            <ListOfMolecules>
+              <Molecule id="RR4_RP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR4_RP1_M1_C1" name="asite" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+              <Molecule id="RR4_RP1_M2" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR4_RP1_M2_C1" name="p2" numberOfBonds="1"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+            <ListOfBonds>
+              <Bond id="RR4_RP1_B1" site1="RR4_RP1_M1_C1" site2="RR4_RP1_M2_C1"/>
+            </ListOfBonds>
+          </ReactantPattern>
+        </ListOfReactantPatterns>
+        <ListOfProductPatterns>
+          <ProductPattern id="RR4_PP1">
+            <ListOfMolecules>
+              <Molecule id="RR4_PP1_M1" name="ribosome">
+                <ListOfComponents>
+                  <Component id="RR4_PP1_M1_C1" name="asite" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+          </ProductPattern>
+          <ProductPattern id="RR4_PP2">
+            <ListOfMolecules>
+              <Molecule id="RR4_PP2_M1" name="mrna">
+                <ListOfComponents>
+                  <Component id="RR4_PP2_M1_C1" name="p2" numberOfBonds="0"/>
+                </ListOfComponents>
+              </Molecule>
+            </ListOfMolecules>
+          </ProductPattern>
+        </ListOfProductPatterns>
+        <RateLaw id="RR4_RateLaw" type="Ele" totalrate="0">
+          <ListOfRateConstants>
+            <RateConstant value="k_term"/>
+          </ListOfRateConstants>
+        </RateLaw>
+        <Map>
+          <MapItem sourceID="RR4_RP1_M1" targetID="RR4_PP1_M1"/>
+          <MapItem sourceID="RR4_RP1_M1_C1" targetID="RR4_PP1_M1_C1"/>
+          <MapItem sourceID="RR4_RP1_M2" targetID="RR4_PP2_M1"/>
+          <MapItem sourceID="RR4_RP1_M2_C1" targetID="RR4_PP2_M1_C1"/>
+        </Map>
+        <ListOfOperations>
+          <DeleteBond site1="RR4_RP1_M1_C1" site2="RR4_RP1_M2_C1"/>
+        </ListOfOperations>
+      </ReactionRule>
+    </ListOfReactionRules>
+    <ListOfObservables>
+    </ListOfObservables>
+    <ListOfFunctions>
+      <Function id="_rateLaw1">
+        <ListOfReferences>
+          <Reference name="k_init" type="Constant"/>
+        </ListOfReferences>
+        <Expression> k_init </Expression>
+      </Function>
+    </ListOfFunctions>
+  </model>
+</sbml>

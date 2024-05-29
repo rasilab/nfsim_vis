@@ -53,11 +53,8 @@ function createModelFromJson(jsonData) {
 
     // Should I be parsing the whole model? Does this get redundant?
     // Note I have not done anything with 'state' (free/blocked) that some reactant/product pattern components have
-    // Note that sometimes different reacting molecules (in ReactantPatterns) both have their info stored as "M1" and "C1"
-    // which gets overwritten with the current menthod, but ProductPatterns should be unique in that regard
     Object.entries(jsonData.ReactionRules).forEach(([ruleId, rule]) => {
         const rate = rule.RR1_RateLaw ? parseFloat(rule.RR1_RateLaw.totalrate) : 0;
-
         const rate_name = ruleId + "_RateLaw";
         const rate_law = rule[rate_name];
         if ('RateConstants' in rate_law) {
@@ -66,6 +63,11 @@ function createModelFromJson(jsonData) {
             var rateConstant = 'initial'; // is this generally true? no defined rate constant = initiate?
         }
         const rateConst = rateConstant.toString();
+
+        const operations = {};
+        Object.entries(rule.Operations).forEach(([index, operation]) => {
+            operations[index] = operation;
+        });
     
         const reactant_patterns = [];
         const reactant_mol = {};
@@ -76,10 +78,12 @@ function createModelFromJson(jsonData) {
             const rp = reactant_pattern.split("_")[1];
             reactant_patterns.push(rp);
             Object.entries(reactant_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
-                const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
+                // const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
+                const mol = molecule;
                 reactant_mol[mol] = molecule_array.name;
                 Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
-                    const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
+                    // const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
+                    const mol_comp = component;
                     reactant_mol_components[mol_comp] = component_array.name;
                     reactant_num_bonds[mol_comp] = component_array.numberOfBonds;
                 });
@@ -97,10 +101,12 @@ function createModelFromJson(jsonData) {
             const pp = product_pattern.split("_")[1];
             product_patterns.push(pp);
             Object.entries(product_pattern_array.Molecules).forEach(([molecule, molecule_array]) => {
-                const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
+                // const mol = [molecule.split("_")[1], molecule.split("_")[2]].join("_");
+                const mol = molecule;
                 product_mol[mol] = molecule_array.name;
                 Object.entries(molecule_array.Components).forEach(([component, component_array]) => {
-                    const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
+                    // const mol_comp = [component.split("_")[1], component.split("_")[2], component.split("_")[3]].join("_")
+                    const mol_comp = component;
                     product_mol_components[mol_comp] = component_array.name;
                     product_num_bonds[mol_comp] = component_array.numberOfBonds;
                     if (component_array.state) {
@@ -115,7 +121,8 @@ function createModelFromJson(jsonData) {
             try {
             Object.entries(product_pattern_array.Bonds).forEach(([bond, bond_array]) => {
                 Object.entries(bond_array).forEach(([key, value]) => {
-                    const val = [value.split("_")[1], value.split("_")[2], value.split("_")[3]].join("_")
+                    // const val = [value.split("_")[1], value.split("_")[2], value.split("_")[3]].join("_")
+                    const val = value;
                     product_bonds[key] = val;
                 });
             });
@@ -128,7 +135,7 @@ function createModelFromJson(jsonData) {
 
         model.addRule(new Rule(rule.name, reactant_patterns, reactant_mol, reactant_mol_components, 
             reactant_num_bonds, product_patterns, product_mol, product_mol_components, product_num_bonds, 
-            product_bonds, product_states, rate, rateConst));
+            product_bonds, product_states, rate, rateConst, operations));
     });
 
     return model;
@@ -201,16 +208,17 @@ async function createMoleculeGroups(monomer, simulation, userInput, svgBasePath 
 function defineBondsFromReactionRules(reactionRules) {
     const interactomeByRule = [];
     for (let rule of reactionRules) {
-        const defineBonds = new DefineBonds();
-        defineBonds.bondInteractors(rule.product_mol, rule.product_mol_components, rule.product_bonds);
+        const defineBonds = new DefineBonds(rule);
+        defineBonds.BondInteractors(rule.product_mol, rule.product_mol_components, rule.product_bonds);
+        defineBonds.Reactants(rule.reactant_mol, rule.reactant_mol_components);
         interactomeByRule.push(defineBonds);
     }
     return interactomeByRule;
 }
 
-function getIndexByKeyValue(userInputList, key, value) {
-    for (let i = 0; i < userInputList.length; i++) {
-        if (userInputList[i][key] === value) {
+function getIndexByKeyValue(inputList, key, value) {
+    for (let i = 0; i < inputList.length; i++) {
+        if (inputList[i][key] === value) {
             return i;
         }
     }
@@ -222,7 +230,6 @@ function getSiteByMolecule(moleculeName, interactorMols, interactorSites) {
             return interactorSites[i];
         }
     }
-    
 }
 
 function getSVGByName(svgGroupsList, name) {
@@ -230,7 +237,6 @@ function getSVGByName(svgGroupsList, name) {
         if (svgGroupsList[i].node.id === name) {
             return svgGroupsList[i];
         }
-    
     }
 }
 
@@ -292,7 +298,7 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, de
                 const y2 = movingGroup.transform().translateY - 50; 
                 const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
                 const duration = distance * 20; 
-                const result = await animateSVGTermination(movingGroup, duration, x1, y1, x2, y2);
+                animateSVGTermination(movingGroup, duration, x1, y1, x2, y2);
             }
         }
         else {
@@ -338,7 +344,65 @@ function getValueByKey(obj, key) {
     }
 }
 
-async function iterateAndVisualizeSimulationFirings(svgGroupsList, firings, moleculeTypes, userInput) {
+function getRuleOpsByPropsName(modelRules, ruleName) {
+    for (let i = 0; i < modelRules.length; i++) {
+        if (modelRules[i].name === ruleName) {
+            return modelRules[i].operations;
+        }
+    }
+}
+
+function getRuleByPropsName(modelRules, ruleName) {
+    for (let i = 0; i < modelRules.length; i++) {
+        if (modelRules[i].name === ruleName) {
+            return modelRules[i];
+        }
+    }
+}
+
+function getAddBondOp(ops) {
+    for (let i = 0; i < ops.length; i++) {
+        if (ops[i][0] === "AddBond") {
+            return ops[i].slice(1);
+        }
+    }
+}
+
+function getDeleteBondOp(ops) {
+    for (let i = 0; i < ops.length; i++) {
+        if (ops[i][0] === "DeleteBond") {
+            return ops[i].slice(1);
+        }
+    }
+}
+
+function getAddBondRuleOp(ruleOps) {
+    const sites = [];
+    Object.entries(ruleOps).forEach(([key, value]) => {
+        if (value.type === "AddBond") {
+            sites.push(value['site1'], value['site2']);
+        }
+    });
+    return sites;
+}
+
+function getIndexByValue(list, value) {
+    for (let i = 0; i < list.length; i++) {
+        if (list[i] === value) {
+            return i;
+        }
+    }
+}
+
+function getBondByName(ruleName, definedBonds) {
+    for (let i = 0; i < definedBonds.length; i++) {
+        if (definedBonds[i].name === ruleName) {
+            return definedBonds[i];
+        }
+    }
+}
+
+async function iterateAndVisualizeSimulationFirings(modelRules, definedBonds, svgGroupsList, firings, moleculeTypes, userInput) {
     const svgContainer = document.getElementById("simulationVisualization");
     const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
     const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
@@ -368,43 +432,56 @@ async function iterateAndVisualizeSimulationFirings(svgGroupsList, firings, mole
     
     for (let index = 0; index < firings.length; index++) {
         const firing = firings[index];
-        console.log(firing);
         const props = getValueByKey(firing, 'props');
         const ops = getValueByKey(firing, 'ops');
-        console.log(props, ops);
-        // break;
-        // const thisBond = definedBonds[index];
-        // if (thisBond.interactorMols.length === 1) {
-        //     if (thisBond.interactorMols[0] === null) {
-        //     continue; // end of reaction, no bonds
-        //     }
-        // }
-        // else {
-        //     const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
-        //     const moveFromSVGSites = movingGroup.find('circle'); // will get list of all the sites which are circles
-        //     const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
-        //     const x1 = movingSiteGroup.cx() + movingGroup.transform().translateX;
-        //     const y1 = movingSiteGroup.cy() + movingGroup.transform().translateY;
-        //     const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
-        //     const moveToSVGSites = stayingGroup.find('circle');
-        //     const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
-        //     const x2 = stayingSiteGroup.cx() + stayingGroup.transform().translateX;
-        //     const y2 = stayingSiteGroup.cy() + stayingGroup.transform().translateY;
+        const ruleName = props[0];
+        const thisBond = getBondByName(ruleName, definedBonds);
+        const ruleOps = getRuleOpsByPropsName(modelRules, ruleName);
+        const rule = getRuleByPropsName(modelRules, ruleName);
+        const addBond = getAddBondOp(ops); // for viz purposes, I think this is the only one I need
+        const addBondRule = getAddBondRuleOp(ruleOps);
+        const idxMove = getIndexByValue(thisBond.reactorMols, movingMolName);
+        const idxStay = getIndexByValue(thisBond.reactorMols, stayingMolName);
+        if (addBond === undefined) {
+            const deleteBond = getDeleteBondOp(ops);
+            const movingMolNum = deleteBond[idxMove];
+            const moveSVGName = movingMolName + "_" + movingMolNum;
+            const movingGroup_i = getSVGByName(movingGroup, moveSVGName);
+            const x1 = movingGroup_i.transform().translateX;
+            const y1 = movingGroup_i.transform().translateY;
+            const x2 = movingGroup_i.transform().translateX + 100; 
+            const y2 = movingGroup_i.transform().translateY - 100; 
+            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const duration = distance * 5; 
+            animateSVGTermination(movingGroup_i, duration, x1, y1, x2, y2);
             
-        //     const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        //     const duration = distance * 20; // increase number to increase how long it takes to move
-
-        //     const result = await animateSVG(movingGroup, duration, x1, y1, x2, y2);
-        //     let newX = result[0];
-        //     let newY = result[1];
-
-        //     movingGroup
-        //         .x(newX)
-        //         .y(newY);
-        // }
+        }
+        else {
+            const movingMolNum = addBond[idxMove];
+            const stayingMolNum = addBond[idxStay + 1];
+            const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
+            const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
+            const moveSVGName = movingMolName + "_" + movingMolNum;
+            const staySVGName = stayingMolName + "_" + stayingMolNum;
+            const movingGroup_i = getSVGByName(movingGroup, moveSVGName);
+            const moveFromSVGSites = movingGroup_i.find('circle'); // will get list of all the sites which are circles
+            const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
+            const x1 = movingSiteGroup.cx() + movingGroup_i.transform().translateX;
+            const y1 = movingSiteGroup.cy() + movingGroup_i.transform().translateY;
+            const stayingGroup_i = getSVGByName(stayingGroup, staySVGName);
+            const moveToSVGSites = stayingGroup_i.find('circle');
+            const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
+            const x2 = stayingSiteGroup.cx() + stayingGroup_i.transform().translateX;
+            const y2 = stayingSiteGroup.cy() + stayingGroup_i.transform().translateY;
+            
+            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const duration = distance * 5; // increase number to increase how long it takes to move
+            
+            const result = await animateSVG(movingGroup_i, movingSiteGroup, duration, x1, y1, x2, y2);
+        }
     }
-
 }
+
 
 async function main() {
     const xmlUrl = './model_xml/model.xml';
@@ -431,7 +508,7 @@ async function main() {
         return await createMoleculeGroups(monomer, simulation, userInput, svgBasePath); 
     });
     const svgMoleculeGroups = await Promise.all(promises);
-    iterateAndVisualizeSimulationFirings(svgMoleculeGroups, firings, moleculeTypes, userInput);
+    iterateAndVisualizeSimulationFirings(model.rules, definedBonds, svgMoleculeGroups, firings, moleculeTypes, userInput);
     
 }
 

@@ -77,7 +77,7 @@ export class CreateSVGMolecules {
                 }
                 else (spacing = moleculeElement.width() / (numSites + 1));
                 
-                groupElement.text(this.molecule.name)
+                groupElement.text([this.molecule.name, i].join('_'))
                     .attr("text-anchor", "left")
                     .fill("black");
 
@@ -170,21 +170,36 @@ export class CreateSVGModelMolecules {
 }
 
 export class DefineBonds {
-    constructor() {
+    constructor(rule) {
+        this.name = rule.name;
         this.interactorIds = [];
         this.interactorMols = [];
         this.interactorSites = [];
+        this.reactorIds = [];
+        this.reactorMols = [];
+        this.reactorSites = [];
     }
 
     // right now, they are 'linked' by indice, so it may be good to consider null conditions
-    bondInteractors(productMol, productMolComponents, productBonds) {
+    BondInteractors(productMol, productMolComponents, productBonds) {
         for (let i = 0; i < Object.keys(productBonds).length; i++) {
             const interactor = Object.entries(productBonds)[i][1]; // 0 is just the word 'site'
-            const interactingMol = productMol[[interactor?.split('_')[0], interactor?.split('_')[1]].join('_')];
+            const interactingMol = productMol[[interactor?.split('_')[0], interactor?.split('_')[1], interactor?.split('_')[2]].join('_')];
             const interactingSite = productMolComponents[interactor];
             this.interactorIds.push(interactor);
             this.interactorMols.push(interactingMol);
             this.interactorSites.push(interactingSite);
+            }
+        }
+
+    Reactants(reactantMol, reactantMolComponents) {
+        for (let i = 0; i < Object.keys(reactantMol).length; i++) {
+            const interactor = Object.entries(reactantMolComponents)[i][0];
+            const interactingMol = Object.entries(reactantMol)[i][1];
+            const interactingSite = Object.entries(reactantMolComponents)[i][1];
+            this.reactorIds.push(interactor);
+            this.reactorMols.push(interactingMol);
+            this.reactorSites.push(interactingSite);
             }
         }
 }
