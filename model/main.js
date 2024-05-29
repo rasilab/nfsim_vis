@@ -256,14 +256,21 @@ function animateSVG(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2) {
     });
 }
 
-function animateSVGTermination(movingGroup, duration, x1, y1, x2, y2) {
+function animateSVGTermination(movingGroup, duration, x1, y1, x2, y2, initialPos) {
     return new Promise(resolve => {
         let mx, my;
         movingGroup.animate(duration).during(function(pos) {
             mx = x1 + (x2 - x1) * pos;
             my = y1 + (y2 - y1) * pos;
             movingGroup.transform({translate: {x: mx - movingGroup.bbox().x, y: my - movingGroup.bbox().y}});
-        })
+        }).after(() => {
+            movingGroup.animate(duration).during(function(pos) {
+                mx = movingGroup.transform().translateX + (initialPos.x - movingGroup.transform().translateX) * pos;
+                my = movingGroup.transform().translateY + (initialPos.y - movingGroup.transform().translateY) * pos;
+                movingGroup.transform({translate: {x: mx, y: my}});
+                resolve([mx, my]);
+            });
+        });
     });
 }
 
@@ -297,8 +304,8 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, de
                 const x2 = movingGroup.transform().translateX + 50; 
                 const y2 = movingGroup.transform().translateY - 50; 
                 const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-                const duration = distance * 20; 
-                animateSVGTermination(movingGroup, duration, x1, y1, x2, y2);
+                const duration = distance * 10; 
+                await animateSVGTermination(movingGroup, duration, x1, y1, x2, y2, movingPos);
             }
         }
         else {
@@ -453,7 +460,7 @@ async function iterateAndVisualizeSimulationFirings(modelRules, definedBonds, sv
             const y2 = movingGroup_i.transform().translateY - 100; 
             const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
             const duration = distance * 5; 
-            animateSVGTermination(movingGroup_i, duration, x1, y1, x2, y2);
+            await animateSVGTermination(movingGroup_i, duration, x1, y1, x2, y2, position);
             
         }
         else {
