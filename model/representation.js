@@ -24,14 +24,6 @@ export class CreateSVGMolecules {
         }
     }
 
-    getIndexByKeyValue(userInputList, key, value) {
-        for (let i = 0; i < userInputList.length; i++) {
-            if (userInputList[i][key] === value) {
-                return i;
-            }
-        }
-    }
-
     getSomethingByName(simulationJSON, value) {
         const array = {};
         for (let i = 0; i < simulationJSON.length; i++) {
@@ -43,10 +35,6 @@ export class CreateSVGMolecules {
         return array;
     }
     
-    getKeysByValue(obj, value) {
-        return parseInt(Object.keys(obj).filter(key => obj[key] === value));
-    }
-
     getNumParticlesByTypeID(initialState, typeID) {
         for (let i = 0; i < initialState.length; i++) {
             if (initialState[i][0] == typeID) {
@@ -55,17 +43,26 @@ export class CreateSVGMolecules {
         }
     }
 
+    getIndexbyTypeId(initialState, typeID) {
+        for (let i = 0; i < initialState.length; i++) {
+            if (initialState[i][0] == typeID) {
+                return i;
+            }
+        }
+    }
+
     CreateSVGMoleculeGroups() {
         const initialState = this.simulation["simulation"]["initialState"]["molecule_array"];
         const moleculeTypes = this.simulation["simulation"]["molecule_types"];
-
         const molArray = this.getSomethingByName(moleculeTypes, this.molecule.name);
         const molTypeId = this.getTypeIdFromMolName(moleculeTypes, this.molecule.name);
         const numInitialParticles = this.getNumParticlesByTypeID(initialState, molTypeId);
+        const startNamingIndex = this.getIndexbyTypeId(initialState, molTypeId);
+        const endNamingIndex = startNamingIndex + numInitialParticles;
 
         if (this.svgContent) {
             const groupElements = [];
-            for (let i = 0; i <= numInitialParticles+1; i++) { //model.json says there should be 100 particles (0-99), but firings includes one named 101, so we need (0-101)
+            for (let i = startNamingIndex; i < endNamingIndex; i++) { 
                 const groupElement = SVG().group();
                 groupElement.svg(this.svgContent);
                 
@@ -178,6 +175,7 @@ export class DefineBonds {
         this.reactorIds = [];
         this.reactorMols = [];
         this.reactorSites = [];
+        this.operations = rule.operations;
     }
 
     // right now, they are 'linked' by indice, so it may be good to consider null conditions

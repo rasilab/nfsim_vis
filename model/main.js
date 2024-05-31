@@ -240,93 +240,6 @@ function getSVGByName(svgGroupsList, name) {
     }
 }
 
-function animateSVG(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2) {
-    return new Promise(resolve => {
-        let mx, my, newX, newY;
-        movingGroup.animate(duration).during(function(pos) {
-            // Interpolate the x and y coordinates
-            mx = x1 + (x2 - x1) * pos;
-            my = y1 + (y2 - y1) * pos;
-            movingGroup.transform({translate: {x: mx - movingSiteGroup.cx(), y: my - movingSiteGroup.cy()}});
-        }).after(() => {
-            newX = movingGroup.x();
-            newY = movingGroup.y();
-            resolve([newX, newY]);
-        });
-    });
-}
-
-function animateSVGTermination(movingGroup, duration, x1, y1, x2, y2, initialPos) {
-    return new Promise(resolve => {
-        let mx, my;
-        movingGroup.animate(duration).during(function(pos) {
-            mx = x1 + (x2 - x1) * pos;
-            my = y1 + (y2 - y1) * pos;
-            movingGroup.transform({translate: {x: mx - movingGroup.bbox().x, y: my - movingGroup.bbox().y}});
-        }).after(() => {
-            movingGroup.animate(duration).during(function(pos) {
-                mx = movingGroup.transform().translateX + (initialPos.x - movingGroup.transform().translateX) * pos;
-                my = movingGroup.transform().translateY + (initialPos.y - movingGroup.transform().translateY) * pos;
-                movingGroup.transform({translate: {x: mx, y: my}});
-                resolve([mx, my]);
-            });
-        });
-    });
-}
-
-async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedBonds, userInput) {
-    const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
-    const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
-    const whichStaying = getIndexByKeyValue(userInput, 'type', 'stayingGroup');
-    const stayingMolName = userInput[whichStaying]['name']; // assumes only one value provided here
-    const movingGroup = getSVGByName(svgGroupsList, movingMolName);
-    const stayingGroup = getSVGByName(svgGroupsList, stayingMolName);
-    const svgContainer = document.getElementById("ruleVisualization");
-    const containerWidth = svgContainer.getBoundingClientRect().width;
-    const containerHeight = svgContainer.getBoundingClientRect().height;
-    const stayingPos = {x: (containerWidth / 2) - (stayingGroup.width()/2), y: (containerHeight / 2) - (stayingGroup.height()/2)};
-    const movingPos = {x: (containerWidth / 4) - (movingGroup.width()/2), y: (containerHeight / 4) - (movingGroup.height()/2)};
-    
-    movingGroup.addTo(svgContainer);
-    stayingGroup.addTo(svgContainer);
-    movingGroup.transform({translate: movingPos});
-    stayingGroup.transform({translate: stayingPos});
-    
-    //there should be as many definedBonds as there are reactionRules
-    //definedBonds just may make it a bit easier to extract info from
-    for (let index = 0; index < reactionRules.length; index++) {
-        const rule = reactionRules[index];
-        const thisBond = definedBonds[index];
-        if (thisBond.interactorMols.length === 1) {
-            if (thisBond.interactorMols[0] === undefined || thisBond.interactorMols[0] === null) {
-                const x1 = movingGroup.transform().translateX;
-                const y1 = movingGroup.transform().translateY;
-                const x2 = movingGroup.transform().translateX + 50; 
-                const y2 = movingGroup.transform().translateY - 50; 
-                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-                const duration = distance * 10; 
-                await animateSVGTermination(movingGroup, duration, x1, y1, x2, y2, movingPos);
-            }
-        }
-        else {
-            const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
-            const moveFromSVGSites = movingGroup.find('circle'); // will get list of all the sites which are circles
-            const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
-            const x1 = movingSiteGroup.cx() + movingGroup.transform().translateX;
-            const y1 = movingSiteGroup.cy() + movingGroup.transform().translateY;
-            const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
-            const moveToSVGSites = stayingGroup.find('circle');
-            const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
-            const x2 = stayingSiteGroup.cx() + stayingGroup.transform().translateX;
-            const y2 = stayingSiteGroup.cy() + stayingGroup.transform().translateY;
-            
-            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            const duration = distance * 20; // increase number to increase how long it takes to move
-            const result = await animateSVG(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2);
-        }
-    }
-}
-
 function getTypeIdFromMolName(moleculeTypes, molName) {
     for (let i = 0; i < moleculeTypes.length; i++) {
         if (moleculeTypes[i].name === molName) {
@@ -348,14 +261,6 @@ function getSVGListByTypeId(svgGroupsList, typeId) {
 function getValueByKey(obj, key) {
     if (obj.hasOwnProperty(key)) {
         return obj[key];
-    }
-}
-
-function getRuleOpsByPropsName(modelRules, ruleName) {
-    for (let i = 0; i < modelRules.length; i++) {
-        if (modelRules[i].name === ruleName) {
-            return modelRules[i].operations;
-        }
     }
 }
 
@@ -383,16 +288,6 @@ function getDeleteBondOp(ops) {
     }
 }
 
-function getAddBondRuleOp(ruleOps) {
-    const sites = [];
-    Object.entries(ruleOps).forEach(([key, value]) => {
-        if (value.type === "AddBond") {
-            sites.push(value['site1'], value['site2']);
-        }
-    });
-    return sites;
-}
-
 function getIndexByValue(list, value) {
     for (let i = 0; i < list.length; i++) {
         if (list[i] === value) {
@@ -405,6 +300,131 @@ function getBondByName(ruleName, definedBonds) {
     for (let i = 0; i < definedBonds.length; i++) {
         if (definedBonds[i].name === ruleName) {
             return definedBonds[i];
+        }
+    }
+}
+
+function getRuleIndexByRuleName(modelRules, ruleName) {
+    for (let i = 0; i < modelRules.length; i++) {
+        if (modelRules[i].name === ruleName) {
+            return i;
+        }
+    }
+}
+
+function animateSVGAddBond(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2) {
+    return new Promise(resolve => {
+        let mx, my, newX, newY;
+        movingGroup.animate(duration).during(function(pos) {
+            // Interpolate the x and y coordinates
+            mx = x1 + (x2 - x1) * pos;
+            my = y1 + (y2 - y1) * pos;
+            movingGroup.transform({translate: {x: mx - movingSiteGroup.cx(), y: my - movingSiteGroup.cy()}}).attr('opacity', 1);
+        }).after(() => {
+            newX = movingGroup.x();
+            newY = movingGroup.y();
+            resolve([newX, newY]);
+        });
+    });
+}
+
+function animateSVGDeleteBond(movingGroup, duration, x1, y1, x2, y2) {
+    return new Promise(resolve => {
+        let mx, my;
+        movingGroup.animate(duration).during(function(pos) {
+            mx = x1 + (x2 - x1) * pos;
+            my = y1 + (y2 - y1) * pos;
+            movingGroup.transform({translate: {x: mx - movingGroup.bbox().x, y: my - movingGroup.bbox().y}});
+        }).after(() => {
+        resolve([mx, my]);
+        });
+    });
+}
+
+function animateSVGRestart(movingGroup, duration, initialPos) {
+    return new Promise (resolve => {
+        let mx, my;
+        movingGroup.animate(duration).during(function(pos) {
+            mx = movingGroup.transform().translateX + (initialPos.x - movingGroup.transform().translateX) *pos;
+            my = movingGroup.transform().translateY + (initialPos.y - movingGroup.transform().translateY) *pos;
+            movingGroup.transform({translate: {x: mx, y: my}}).attr('opacity', 0);
+        }).after(() => {
+            resolve([mx, my]);
+        });
+    });
+}
+
+
+async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, definedBonds, userInput) {
+    const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
+    const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
+    const whichStaying = getIndexByKeyValue(userInput, 'type', 'stayingGroup');
+    const stayingMolName = userInput[whichStaying]['name']; // assumes only one value provided here
+    const movingGroup = getSVGByName(svgGroupsList, movingMolName);
+    const stayingGroup = getSVGByName(svgGroupsList, stayingMolName);
+    const svgContainer = document.getElementById("ruleVisualization");
+    const containerWidth = svgContainer.getBoundingClientRect().width;
+    const containerHeight = svgContainer.getBoundingClientRect().height;
+    const stayingPos = {x: (containerWidth / 2) - (stayingGroup.width()/2), y: (containerHeight / 2) - (stayingGroup.height()/2)};
+    const movingPos = {x: (containerWidth / 4) - (movingGroup.width()/2), y: (containerHeight / 4) - (movingGroup.height()/2)};
+    
+    movingGroup.addTo(svgContainer);
+    stayingGroup.addTo(svgContainer);
+    movingGroup.transform({translate: movingPos});
+    stayingGroup.transform({translate: stayingPos});
+    
+    while (true) {
+        for (let index = 0; index < reactionRules.length; index++) {
+            const rule = reactionRules[index];
+            //there should be as many definedBonds entries as there are reactionRules
+            const thisBond = definedBonds[index]; //this is just to make it a bit easier to extract info from bc you can use indices directly
+            const operations = rule.operations;
+            for (const [key, value] of Object.entries(operations)) {
+                const type = value.type;
+                if (type === "StateChange") {
+                    // add something to visualize the state change
+                }
+                else if (type === "DeleteBond") {
+                    const x1 = movingGroup.transform().translateX;
+                    const y1 = movingGroup.transform().translateY;
+                    const x2 = movingGroup.transform().translateX + 10; 
+                    const y2 = movingGroup.transform().translateY; 
+                    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    const duration = distance * 10;
+                    await animateSVGDeleteBond(movingGroup, duration, x1, y1, x2, y2);
+                }
+                else if (type ===  "AddBond") {
+                    const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
+                    const moveFromSVGSites = movingGroup.find('circle'); // will get list of all the sites which are circles
+                    const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
+                    const x1 = movingSiteGroup.cx() + movingGroup.transform().translateX;
+                    const y1 = movingSiteGroup.cy() + movingGroup.transform().translateY;
+                    const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
+                    const moveToSVGSites = stayingGroup.find('circle');
+                    const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
+                    const x2 = stayingSiteGroup.cx() + stayingGroup.transform().translateX;
+                    const y2 = stayingSiteGroup.cy() + stayingGroup.transform().translateY;
+                    const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    const duration = distance * 10; // increase number to increase how long it takes to move
+                    await animateSVGAddBond(movingGroup, movingSiteGroup, duration, x1, y1, x2, y2);
+                }
+                else if (type === "AddMolecule") {
+                    // figure out what to visualize in this case
+                }
+                else if (type === "DeleteMolecule") {
+                    // figure out what to visualize in this case
+                }
+            }
+            if (index === reactionRules.length - 1) {
+                const x1 = movingGroup.transform().translateX;
+                const y1 = movingGroup.transform().translateY;
+                const x2 = movingGroup.transform().translateX + 100; 
+                const y2 = movingGroup.transform().translateY - 50; // move the particle completely off before restarting 
+                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const duration = distance * 10;
+                await animateSVGDeleteBond(movingGroup, duration, x1, y1, x2, y2);
+                await animateSVGRestart(movingGroup, duration, movingPos);
+            }
         }
     }
 }
@@ -431,10 +451,11 @@ async function iterateAndVisualizeSimulationFirings(modelRules, definedBonds, sv
     }
 
     // set the stack of moving groups somewhere in the corner or to the side
+    var movPosition;
     for (let i = 0; i < movingGroup.length; i++) {
         movingGroup[i].addTo(svgContainer);
-        position = {x: (containerWidth / 4) - (movingGroup[i].width()/2), y: (containerHeight / 4) - (movingGroup[i].height()/2)};
-        movingGroup[i].transform({translate: position});
+        movPosition = {x: (containerWidth / 4) - (movingGroup[i].width()/2), y: (containerHeight / 4) - (movingGroup[i].height()/2)};
+        movingGroup[i].transform({translate: movPosition}).attr('opacity', 0);
     }
     
     for (let index = 0; index < firings.length; index++) {
@@ -443,13 +464,63 @@ async function iterateAndVisualizeSimulationFirings(modelRules, definedBonds, sv
         const ops = getValueByKey(firing, 'ops');
         const ruleName = props[0];
         const thisBond = getBondByName(ruleName, definedBonds);
-        const ruleOps = getRuleOpsByPropsName(modelRules, ruleName);
         const rule = getRuleByPropsName(modelRules, ruleName);
-        const addBond = getAddBondOp(ops); // for viz purposes, I think this is the only one I need
-        const addBondRule = getAddBondRuleOp(ruleOps);
+        const operations = rule.operations;
+
         const idxMove = getIndexByValue(thisBond.reactorMols, movingMolName);
         const idxStay = getIndexByValue(thisBond.reactorMols, stayingMolName);
-        if (addBond === undefined) {
+
+        for (const [key, value] of Object.entries(operations)) {
+            const type = value.type;
+            if (type === "StateChange") {
+                // add something to visualize the state change
+            }
+            else if (type === "DeleteBond") {
+                const deleteBond = getDeleteBondOp(ops);
+                const movingMolNum = deleteBond[idxMove];
+                const moveSVGName = movingMolName + "_" + movingMolNum;
+                const movingGroup_i = getSVGByName(movingGroup, moveSVGName);
+                const x1 = movingGroup_i.transform().translateX;
+                const y1 = movingGroup_i.transform().translateY;
+                const x2 = movingGroup_i.transform().translateX + 10; 
+                const y2 = movingGroup_i.transform().translateY; 
+                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const duration = distance * 10; 
+                await animateSVGDeleteBond(movingGroup_i, duration, x1, y1, x2, y2);
+            }
+            else if (type === "AddBond") {
+                const addBond = getAddBondOp(ops); // for viz purposes, I think this is the only one I need
+                const movingMolNum = addBond[idxMove];
+                const stayingMolNum = addBond[idxStay + 1];
+                const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
+                const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
+                const moveSVGName = movingMolName + "_" + movingMolNum;
+                const staySVGName = stayingMolName + "_" + stayingMolNum;
+                const movingGroup_i = getSVGByName(movingGroup, moveSVGName);
+                const moveFromSVGSites = movingGroup_i.find('circle'); // will get list of all the sites which are circles
+                const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
+                const x1 = movingSiteGroup.cx() + movingGroup_i.transform().translateX;
+                const y1 = movingSiteGroup.cy() + movingGroup_i.transform().translateY;
+                const stayingGroup_i = getSVGByName(stayingGroup, staySVGName);
+                const moveToSVGSites = stayingGroup_i.find('circle');
+                const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
+                const x2 = stayingSiteGroup.cx() + stayingGroup_i.transform().translateX;
+                const y2 = stayingSiteGroup.cy() + stayingGroup_i.transform().translateY;
+                
+                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const duration = distance * 10; // increase number to increase how long it takes to move
+                
+                await animateSVGAddBond(movingGroup_i, movingSiteGroup, duration, x1, y1, x2, y2);
+            }
+            else if (type === "AddMolecule") {
+                // figure out what to visualize in this case
+            }
+            else if (type === "DeleteMolecule") {
+                // figure out what to visualize in this case
+            }
+        }
+        const checkIfEnd = getRuleIndexByRuleName(modelRules, ruleName);
+        if (checkIfEnd === modelRules.length - 1) {
             const deleteBond = getDeleteBondOp(ops);
             const movingMolNum = deleteBond[idxMove];
             const moveSVGName = movingMolName + "_" + movingMolNum;
@@ -457,34 +528,11 @@ async function iterateAndVisualizeSimulationFirings(modelRules, definedBonds, sv
             const x1 = movingGroup_i.transform().translateX;
             const y1 = movingGroup_i.transform().translateY;
             const x2 = movingGroup_i.transform().translateX + 100; 
-            const y2 = movingGroup_i.transform().translateY - 100; 
+            const y2 = movingGroup_i.transform().translateY - 50; // move the particle off before restarting
             const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            const duration = distance * 5; 
-            await animateSVGTermination(movingGroup_i, duration, x1, y1, x2, y2, position);
-            
-        }
-        else {
-            const movingMolNum = addBond[idxMove];
-            const stayingMolNum = addBond[idxStay + 1];
-            const movingSiteName = getSiteByMolecule(movingMolName, thisBond.interactorMols, thisBond.interactorSites);
-            const stayingSiteName = getSiteByMolecule(stayingMolName, thisBond.interactorMols, thisBond.interactorSites);
-            const moveSVGName = movingMolName + "_" + movingMolNum;
-            const staySVGName = stayingMolName + "_" + stayingMolNum;
-            const movingGroup_i = getSVGByName(movingGroup, moveSVGName);
-            const moveFromSVGSites = movingGroup_i.find('circle'); // will get list of all the sites which are circles
-            const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
-            const x1 = movingSiteGroup.cx() + movingGroup_i.transform().translateX;
-            const y1 = movingSiteGroup.cy() + movingGroup_i.transform().translateY;
-            const stayingGroup_i = getSVGByName(stayingGroup, staySVGName);
-            const moveToSVGSites = stayingGroup_i.find('circle');
-            const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
-            const x2 = stayingSiteGroup.cx() + stayingGroup_i.transform().translateX;
-            const y2 = stayingSiteGroup.cy() + stayingGroup_i.transform().translateY;
-            
-            const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            const duration = distance * 5; // increase number to increase how long it takes to move
-            
-            const result = await animateSVG(movingGroup_i, movingSiteGroup, duration, x1, y1, x2, y2);
+            const duration = distance * 10; 
+            await animateSVGDeleteBond(movingGroup_i, duration, x1, y1, x2, y2);
+            await animateSVGRestart(movingGroup_i, duration, movPosition);
         }
     }
 }
