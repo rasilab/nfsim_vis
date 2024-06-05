@@ -7,13 +7,15 @@ export class Representation {
     }
 }
 
-export class CreateSVGMolecules {
+export class CreateSVGMolecules extends Representation {
     // create the SVG representation of the molecules including site and pass those groups around
-    constructor(monomer, simulation, userInput, svgContent) {
+    constructor(svgContainer, monomer, simulation, userInput, svgContent) {
+        super(svgContainer);
         this.svgContent = svgContent;
         this.molecule = monomer;
         this.simulation = simulation;
         this.userInput = userInput;
+        this.sites = [];
     }
 
     getTypeIdFromMolName(moleculeTypes, molName) {
@@ -59,14 +61,17 @@ export class CreateSVGMolecules {
         const numInitialParticles = this.getNumParticlesByTypeID(initialState, molTypeId);
         const startNamingIndex = this.getIndexbyTypeId(initialState, molTypeId);
         const endNamingIndex = startNamingIndex + numInitialParticles;
+        const containerWidth = this.svgContainer.getBoundingClientRect().width;
+        const containerHeight = this.svgContainer.getBoundingClientRect().height;
 
         if (this.svgContent) {
             const groupElements = [];
-            for (let i = startNamingIndex; i < endNamingIndex; i++) { 
-                const groupElement = SVG().group();
+            for (let i = startNamingIndex; i < endNamingIndex; i++) {
+                
+                const groupElement = SVG().group(); // create a SVG group from the fetched SVG content
                 groupElement.svg(this.svgContent);
                 
-                const moleculeElement = groupElement.first();
+                const moleculeElement = groupElement.first(); // use .first() because size will change as elements are added to group
                 const numSites = this.molecule.sites.length;
 
                 if (numSites == 1) {
@@ -77,28 +82,30 @@ export class CreateSVGMolecules {
                 groupElement.text([this.molecule.name, i].join('_'))
                     .attr("text-anchor", "left")
                     .fill("black");
+                
+                if (this.molecule.sites.length < 10) {
 
-                this.molecule.sites.forEach((site, index) => {
-                    const relativePosition = {
-                        x: (index + 1) * spacing,
-                        y: moleculeElement.height() / 2
-                    };
-                    groupElement.circle()
-                        .cx(relativePosition.x)
-                        .cy(relativePosition.y)
-                        .radius(5)
-                        .fill("green")
-                        .id(site);
+                    this.molecule.sites.forEach((site, index) => {
+                        const relativePosition = {
+                            x: (index + 1) * spacing,
+                            y: moleculeElement.height() / 2
+                        };
+                        this.sites.push(new SiteRepresentationVisible(groupElement, this, site, relativePosition));
+                        });
+                    }
+                else {
+                    this.molecule.sites.forEach((site, index) => {
+                        const relativePosition = {
+                            x: (index + 1) * spacing,
+                            y: moleculeElement.height() / 2
+                        };
+                        this.sites.push(new SiteRepresentationInvisible(groupElement, this, site, relativePosition));
+                        });
+                }
 
-                    groupElement.text(site)
-                        .x(relativePosition.x)
-                        .y(relativePosition.y)
-                        .attr("text-anchor", "middle")
-                        .fill("green")
-                        .id(site);
-                    });
                 const svgMolId = [this.molecule.name, i].join('_');
                 groupElement.id(svgMolId);
+
                 groupElements.push(groupElement);
             }
             const typeIdGroupsArr = {}
@@ -111,19 +118,30 @@ export class CreateSVGMolecules {
     }
 }
 
-export class CreateSVGModelMolecules {
-    constructor(monomer, index, svgContent) {
+export class CreateSVGModelMolecules extends Representation{
+    constructor(svgContainer, monomer, index, svgContent) {
+        super(svgContainer);
         this.svgContent = svgContent;
         this.molecule = monomer;
         this.index = index;
+        this.sites = [];
     }
 
     CreateModelMoleculeGroups() {
+        const containerWidth = this.svgContainer.getBoundingClientRect().width;
+        const containerHeight = this.svgContainer.getBoundingClientRect().height;
         
         if (this.svgContent) {
             const groupElement = SVG().group();
             groupElement.svg(this.svgContent);
             
+            // // resize group element based on container size
+            // const aspectRatio = groupElement.width() / groupElement.height();
+            // const newWidth = containerWidth * 0.1;
+            // const newHeight = newWidth / aspectRatio;
+            // const scale = newWidth / groupElement.width();
+            // groupElement.style.transform = "translate(" + 0 + "px," + 0 + "px) scale(" + scale + ")";
+
             const moleculeElement = groupElement.first();
             const numSites = this.molecule.sites.length;
 
@@ -136,26 +154,25 @@ export class CreateSVGModelMolecules {
                 .attr("text-anchor", "left")
                 .fill("black");
 
-            this.molecule.sites.forEach((site, index) => {
-                const relativePosition = {
-                    x: (index + 1) * spacing,
-                    y: moleculeElement.height() / 2
-                };
-                groupElement.circle()
-                    .cx(relativePosition.x)
-                    .cy(relativePosition.y)
-                    .radius(5)
-                    .fill("green")
-                    .id(site);
-
-                groupElement.text(site)
-                    .x(relativePosition.x)
-                    .y(relativePosition.y)
-                    .attr("text-anchor", "middle")
-                    .fill("green")
-                    .id(site);
-                });
-
+            if (this.molecule.sites.length < 10) {
+                this.molecule.sites.forEach((site, index) => {
+                    const relativePosition = {
+                        x: (index + 1) * spacing,
+                        y: moleculeElement.height() / 2
+                    };
+                    this.sites.push(new SiteRepresentationVisible(groupElement, this, site, relativePosition));
+                    });
+            }
+            else {
+                this.molecule.sites.forEach((site, index) => {
+                    const relativePosition = {
+                        x: (index + 1) * spacing,
+                        y: moleculeElement.height() / 2
+                    };
+                    this.sites.push(new SiteRepresentationInvisible(groupElement, this, site, relativePosition));
+                    });
+            }
+            
             groupElement.id(this.molecule.name);
 
             return groupElement;
@@ -224,6 +241,7 @@ export class VisualizeRules extends Representation{
 }
 
 export class MoleculeRepresentation extends Representation {
+    // for the molecule, site, and state initial visualization
     constructor(svgContainer, molecule, svgFilePath) {
         super(svgContainer);
         this.molecule = molecule;
@@ -264,61 +282,134 @@ export class MoleculeRepresentation extends Representation {
             const numSites = this.molecule.sites.length;
             const spacing = width / (numSites + 1); // +1 to not place elements exactly on the edges
 
-            this.molecule.sites.forEach((site, index) => {
-                // Calculate position for each site
-                const relativePosition = {
-                    x: (index + 1) * spacing, // +1 so we don't start at 0,
-                    y: moleculeElement.height() / 2 // Center vertically
-                };
-
-                this.sites.push(new SiteRepresentation(groupElement, this, site, relativePosition));
-            });
+            if (this.molecule.sites.length < 10) {
+                this.molecule.sites.forEach((site, index) => {
+                    // Calculate position for each site
+                    const relativePosition = {
+                        x: (index + 1) * spacing, // +1 so we don't start at 0,
+                        y: moleculeElement.height() / 2 // Center vertically
+                    };
+                    this.sites.push(new SiteRepresentationInitial(groupElement, this, site, relativePosition));
+                });
+            }
         } else {
             console.error("SVG content is empty.");
         }
     }
 }
 
-
-export class SiteRepresentation extends Representation {
+class SiteRepresentationInitial extends Representation {
+    // for the molecule, site, and state initial visualization
     constructor(svgContainer, moleculeRep, site, relativePosition = { x: 0, y: 0 }) {
         super(svgContainer);
         this.moleculeRep = moleculeRep;
         this.site = site;
         this.relativePosition = relativePosition;
         this.siteElement = SVG().group().addTo(this.svgContainer);
+
         SVG().circle()
-            .center(relativePosition.x, relativePosition.y)
+            .cx(relativePosition.x)
+            .cy(relativePosition.y)
             .radius(5)
             .fill("green")
+            .id(this.site)
             .addTo(this.siteElement);
+
         SVG().text(this.site)
-            .move(relativePosition.x, relativePosition.y - 25)
+            .x(relativePosition.x)
+            .y(relativePosition.y)
             .attr("text-anchor", "middle")
             .fill("green")
+            .id(this.site)
             .addTo(this.siteElement);
 
         let states = this.moleculeRep.molecule.states[site]; // Define your states
         if (states.length > 0) { // Check if states is not empty
-            this.stateRepresentation = new StateRepresentation(svgContainer, this.siteElement, states);
+            this.stateRepresentation = new StateRepresentation(svgContainer, this.siteElement, this.site, states);
             this.stateRepresentation.startStateSwitching(1000); // Switch state every 1000 milliseconds
         }
     }
 }
 
-export class StateRepresentation extends Representation {
-    constructor(svgContainer, siteElement, states = []) {
+
+class SiteRepresentationVisible extends Representation {
+    // if there are a reasonable number of sites, render them
+    constructor(svgContainer, moleculeRep, site, relativePosition = { x: 0, y: 0 }) {
+        super(svgContainer);
+        this.moleculeRep = moleculeRep;
+        this.site = site;
+        this.relativePosition = relativePosition;
+        this.siteElement = SVG().group().addTo(this.svgContainer);
+
+        SVG().circle()
+            .cx(relativePosition.x)
+            .cy(relativePosition.y)
+            .radius(5)
+            .fill("green")
+            .id(this.site)
+            .addTo(this.siteElement);
+
+        SVG().text(this.site)
+            .x(relativePosition.x)
+            .y(relativePosition.y)
+            .attr("text-anchor", "middle")
+            .fill("green")
+            .id(this.site)
+            .addTo(this.siteElement);
+    }
+}
+
+class SiteRepresentationInvisible extends Representation {
+    // if there are too many sites, render them invisible
+    constructor(svgContainer, moleculeRep, site, relativePosition = { x: 0, y: 0 }) {
+        super(svgContainer);
+        this.moleculeRep = moleculeRep;
+        this.site = site;
+        this.relativePosition = relativePosition;
+        this.siteElement = SVG().group().addTo(this.svgContainer);
+
+        SVG().circle()
+            .cx(relativePosition.x)
+            .cy(relativePosition.y)
+            .radius(5)
+            .fill("green")
+            .id(this.site)
+            .attr('opacity', 0)
+            .addTo(this.siteElement);
+
+        SVG().text(this.site)
+            .x(relativePosition.x)
+            .y(relativePosition.y)
+            .attr("text-anchor", "middle")
+            .fill("green")
+            .id(this.site)
+            .attr('opacity', 0)
+            .addTo(this.siteElement);
+    }
+}
+
+class StateRepresentation extends Representation {
+    constructor(svgContainer, siteElement, site, states = []) {
         super(svgContainer);
         this.siteElement = siteElement;
         this.states = states;
         this.stateIndex = 0;
         this.stateColors = ['red', 'blue', 'green'];
+        this.site = site;
         this.setState(this.states[this.stateIndex]);
+    }
+
+    getSVGByName(svgGroupsList, name) {
+        for (let i = 0; i < svgGroupsList.length; i++) {
+            if (svgGroupsList[i].node.id === name) {
+                return svgGroupsList[i];
+            }
+        }
     }
 
     setState(state) {
         this.state = state;
-        const circleElement = this.siteElement.findOne('circle');
+        const circleElement = this.getSVGByName(this.siteElement.children(), this.site);
         const textElement = SVG().text(state)
             .attr({"text-anchor": "middle", fill: this.stateColors[this.stateIndex], id: 'state'})
             .center(circleElement.attr("cx"), parseInt(circleElement.attr("cy")) + 20)
@@ -329,7 +420,7 @@ export class StateRepresentation extends Representation {
         setInterval(() => {
             this.stateIndex = (this.stateIndex + 1) % this.states.length;
             const textElement = this.siteElement.findOne('#state');
-            const circleElement = this.siteElement.findOne('circle');
+            const circleElement = this.getSVGByName(this.siteElement.children(), this.site);
             circleElement.attr("fill", this.stateColors[this.stateIndex]);
             textElement.attr("fill", this.stateColors[this.stateIndex])
                 .text(this.states[this.stateIndex]);
