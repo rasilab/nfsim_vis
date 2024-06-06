@@ -403,18 +403,6 @@ function getMoleculeByMolComp(siteMolComp, reactant_mol) {
     return molName;
 }
 
-// function getSiteByMolecule(siteMolComp, product_mol_components) {
-//     console.log(siteMolComp);
-//     const site = getValueByKey(product_mol_components, siteMolComp);
-//     console.log(site);
-//     console.log(product_mol_components);
-//     for (let i = 0; i < product_mol.length; i++) {
-//         if (product_mol[i] === moleculeName) {
-//             return product_mol_components[i];
-//         }
-//     }
-// }
-
 async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, userInput) {
     const whichMoving = getMovingMolNames(userInput);
     const whichStaying = getStayingMolNames(userInput);
@@ -538,19 +526,10 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
 
 async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, firings, moleculeTypes, userInput) {
     const svgContainer = document.getElementById("simulationVisualization");
-    const whichMoving = getMovingMolNames(userInput);
-    const whichStaying = getStayingMolNames(userInput);
-    
-    // const whichMoving = getIndexByKeyValue(userInput, 'type', 'movingGroup');
-    // const movingMolName = userInput[whichMoving]['name']; // assumes only one value provided here
-    // const movingMolTypeId = getTypeIdFromMolName(moleculeTypes, movingMolName);
-    // const whichStaying = getIndexByKeyValue(userInput, 'type', 'stayingGroup');
-    // const stayingMolName = userInput[whichStaying]['name']; // assumes only one value provided here
-    // const stayingMolTypeId = getTypeIdFromMolName(moleculeTypes, stayingMolName);
-    // const movingGroup = getSVGListByTypeId(svgGroupsList, movingMolTypeId);
-    // const stayingGroup = getSVGListByTypeId(svgGroupsList, stayingMolTypeId);
     const containerWidth = svgContainer.getBoundingClientRect().width;
     const containerHeight = svgContainer.getBoundingClientRect().height;
+    const whichMoving = getMovingMolNames(userInput);
+    const whichStaying = getStayingMolNames(userInput);
 
     var position, movPosition;
     var offset = 0;
@@ -559,7 +538,7 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
             const groups = svgGroupsList[i][key];
             for (let j = 0; j < groups.length; j++) {
                 const thisGroup = groups[j];
-                position = {x: (containerWidth / 2) - (thisGroup.width()/2), y: (containerHeight / 2) - (thisGroup.height()/2) - offset};
+                position = {x: (containerWidth / 2) - (thisGroup.width()/2), y: (containerHeight) - (thisGroup.height()/2) - offset};
                 thisGroup.addTo(svgContainer);
                 thisGroup.transform({translate: position});
                 const thisMolName = thisGroup.node.id.split("_")[0];
@@ -568,7 +547,7 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                     movPosition = position;
                 }
             }
-        offset += 100;
+        offset += 50;
         }
     }
     
@@ -579,10 +558,6 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
         const ruleName = props[0];
         const rule = getRuleByPropsName(modelRules, ruleName);
         const operations = rule.operations;
-        console.log(firing);
-
-        // const idxMove = getIndexByValue(thisBond.reactorMols, movingMolName);
-        // const idxStay = getIndexByValue(thisBond.reactorMols, stayingMolName);
         
         for (const [key, value] of Object.entries(operations)) {
             const type = value.type;
@@ -738,8 +713,6 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
         }
         const checkIfEnd = getRuleIndexByRuleName(modelRules, ruleName);
         if (checkIfEnd === modelRules.length - 1) {
-            // const deleteBond = getDeleteBondOp(ops);
-            // const movingMolNum = deleteBond[0];
             const moveSVGName = movingMolName + "_" + movingMolNum;
             const movingGroup_i = getExactSVGByName(movingGroups, moveSVGName);
             const x1 = movingGroup_i.transform().translateX;
@@ -756,13 +729,13 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
 
 
 async function main() {
-    const xmlUrl = './model_xml/model.xml';
+    const xmlUrl = './model_xml/model_4.xml';
     const svgBasePath = "./svg/";
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
     const definedBonds = defineBondsFromReactionRules(model.rules);
-    const userInput = await fetch("./model_xml/user_input.json").then(response => response.json());
-    const simulation = await fetch("./model_xml/model.json").then(response => response.json());
+    const userInput = await fetch("./model_xml/user_input_4.json").then(response => response.json());
+    const simulation = await fetch("./model_xml/model_4.json").then(response => response.json());
     const firings = simulation["simulation"]["firings"];
     const moleculeTypes = simulation["simulation"]["molecule_types"];
     addSVGContainer();

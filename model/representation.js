@@ -38,11 +38,26 @@ export class CreateSVGMolecules extends Representation {
     }
     
     getNumParticlesByTypeID(initialState, typeID) {
+        const numbers = [];
+        var start = 0;
+        var add = 0;
+        // console.log("type=", typeID);
         for (let i = 0; i < initialState.length; i++) {
+            // console.log(initialState[i], "next start=", start);
             if (initialState[i][0] == typeID) {
-                return initialState[i][1];
+                const end = initialState[i][1];
+                var iter = 0;
+                for (let j = start; j < start + end; j++) {
+                    // console.log("j=", j);
+                    numbers.push(j);
+                    iter += 1;
+                }
             }
+            add = initialState[i][1];
+            start += add;
+            // console.log("after add", start);
         }
+        return numbers;
     }
 
     getIndexbyTypeId(initialState, typeID) {
@@ -54,19 +69,20 @@ export class CreateSVGMolecules extends Representation {
     }
 
     CreateSVGMoleculeGroups() {
+        const containerWidth = this.svgContainer.getBoundingClientRect().width;
+        const containerHeight = this.svgContainer.getBoundingClientRect().height;
         const initialState = this.simulation["simulation"]["initialState"]["molecule_array"];
         const moleculeTypes = this.simulation["simulation"]["molecule_types"];
         const molArray = this.getSomethingByName(moleculeTypes, this.molecule.name);
         const molTypeId = this.getTypeIdFromMolName(moleculeTypes, this.molecule.name);
         const numInitialParticles = this.getNumParticlesByTypeID(initialState, molTypeId);
-        const startNamingIndex = this.getIndexbyTypeId(initialState, molTypeId);
-        const endNamingIndex = startNamingIndex + numInitialParticles;
-        const containerWidth = this.svgContainer.getBoundingClientRect().width;
-        const containerHeight = this.svgContainer.getBoundingClientRect().height;
+        // const startNamingIndex = this.getIndexbyTypeId(initialState, molTypeId);
+        // const endNamingIndex = startNamingIndex + numInitialParticles;
 
         if (this.svgContent) {
             const groupElements = [];
-            for (let i = startNamingIndex; i < endNamingIndex; i++) {
+            // for (let i = startNamingIndex; i < endNamingIndex; i++) {
+            for (let i of numInitialParticles) {
                 
                 const groupElement = SVG().group(); // create a SVG group from the fetched SVG content
                 groupElement.svg(this.svgContent);
