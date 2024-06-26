@@ -41,21 +41,17 @@ export class CreateSVGMolecules extends Representation {
         const numbers = [];
         var start = 0;
         var add = 0;
-        // console.log("type=", typeID);
         for (let i = 0; i < initialState.length; i++) {
-            // console.log(initialState[i], "next start=", start);
             if (initialState[i][0] == typeID) {
                 const end = initialState[i][1];
                 var iter = 0;
                 for (let j = start; j < start + end; j++) {
-                    // console.log("j=", j);
                     numbers.push(j);
                     iter += 1;
                 }
             }
             add = initialState[i][1];
             start += add;
-            // console.log("after add", start);
         }
         return numbers;
     }
@@ -76,12 +72,9 @@ export class CreateSVGMolecules extends Representation {
         const molArray = this.getSomethingByName(moleculeTypes, this.molecule.name);
         const molTypeId = this.getTypeIdFromMolName(moleculeTypes, this.molecule.name);
         const numInitialParticles = this.getNumParticlesByTypeID(initialState, molTypeId);
-        // const startNamingIndex = this.getIndexbyTypeId(initialState, molTypeId);
-        // const endNamingIndex = startNamingIndex + numInitialParticles;
 
         if (this.svgContent) {
             const groupElements = [];
-            // for (let i = startNamingIndex; i < endNamingIndex; i++) {
             for (let i of numInitialParticles) {
                 
                 const groupElement = SVG().group(); // create a SVG group from the fetched SVG content
@@ -326,7 +319,7 @@ class SiteRepresentationInitial extends Representation {
         SVG().circle()
             .cx(relativePosition.x)
             .cy(relativePosition.y)
-            .radius(5)
+            .radius(2)
             .fill("green")
             .id(this.site)
             .addTo(this.siteElement);
@@ -360,7 +353,7 @@ class SiteRepresentationVisible extends Representation {
         SVG().circle()
             .cx(relativePosition.x)
             .cy(relativePosition.y)
-            .radius(5)
+            .radius(2)
             .fill("green")
             .id(this.site)
             .addTo(this.siteElement);
@@ -387,7 +380,7 @@ class SiteRepresentationInvisible extends Representation {
         SVG().circle()
             .cx(relativePosition.x)
             .cy(relativePosition.y)
-            .radius(5)
+            .radius(2)
             .fill("green")
             .id(this.site)
             .attr('opacity', 0)
