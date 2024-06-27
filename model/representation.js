@@ -192,63 +192,6 @@ export class CreateSVGModelMolecules extends Representation{
         }
 }
 
-export class DefineBonds {
-    constructor(rule) {
-        this.name = rule.name;
-        this.interactorIds = [];
-        this.interactorMols = [];
-        this.interactorSites = [];
-        this.reactorIds = [];
-        this.reactorMols = [];
-        this.reactorSites = [];
-        this.operations = rule.operations;
-    }
-
-    // right now, they are 'linked' by indice, so it may be good to consider null conditions
-    BondInteractors(productMol, productMolComponents, productBonds) {
-        for (let i = 0; i < Object.keys(productBonds).length; i++) {
-            const interactor = Object.entries(productBonds)[i][1]; // 0 is just the word 'site'
-            const interactingMol = productMol[[interactor?.split('_')[0], interactor?.split('_')[1], interactor?.split('_')[2]].join('_')];
-            const interactingSite = productMolComponents[interactor];
-            this.interactorIds.push(interactor);
-            this.interactorMols.push(interactingMol);
-            this.interactorSites.push(interactingSite);
-            }
-        }
-
-    Reactants(reactantMol, reactantMolComponents) {
-        for (let i = 0; i < Object.keys(reactantMol).length; i++) {
-            const interactor = Object.entries(reactantMolComponents)[i][0];
-            const interactingMol = Object.entries(reactantMol)[i][1];
-            const interactingSite = Object.entries(reactantMolComponents)[i][1];
-            this.reactorIds.push(interactor);
-            this.reactorMols.push(interactingMol);
-            this.reactorSites.push(interactingSite);
-            }
-        }
-}
-
-export class VisualizeRules extends Representation{
-    constructor(svgContainer, definedBondsClass, rule, svgGroups) {
-        super(svgContainer);
-        this.interactome = definedBondsClass;
-        this.rule = rule;
-        this.svgGroups = svgGroups;
-    }
-
-    checkResultantStates(moleculeComponent, productStates) {
-        // check if state is not null using key ('PP1_M1_C1')
-        // add the state as some kind of attribute to be retained, or text?
-        if (productStates[moleculeComponent] != null) {
-            const resultantState = productStates[moleculeComponent]
-            return resultantState;
-        }
-        else {
-            return null;
-        }
-    }
-}
-
 export class MoleculeRepresentation extends Representation {
     // for the molecule, site, and state initial visualization
     constructor(svgContainer, molecule, svgFilePath) {

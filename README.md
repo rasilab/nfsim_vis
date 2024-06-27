@@ -29,29 +29,34 @@ classes
 
 - 2024-04-08: We can think of visualization of PySB models as not that different from the chemical reaction syntax of PySB. In both cases, we are representing programming objects in another language. In one case, we use symbols that accurately convey the program structure in a chemical/mathematical langugage, and in the other case, we use symbols that accurately convey the program structure in a visual language.
 
+## How to run the visualization
+- Put your desired images into ```./model/svg``` as svg files (smaller is better)
+- Put your desired model.xml and corresponding model.json into the ```./model/model_xml``` directory.
+- Update the code in ```./model/main.js``` in the ```main``` function to the names of your desired model.xml and model.json files
+- Edit the "name" entry of the ```./model/model_xml/user_input.json``` file to be the same as the svg image files that you put into ```./model/svg``` (e.g. if your svg file is called "ribosome.svg", then "name" should be "ribosome"). Whichever of these molecules should move in the model should go with the "movingGroup" type, and whichever molecule should stay put should go with the "stayingGroup" type. Don't edit the "type" entry, because "movingGroup" and "stayingGroup" terms are used explicitly in the code.
+- If you have multiple molecules that will move in the model, add more entries for type "movingGroup" (see ```./model/model_xml/user_input_4.json``` for example). Note that currently the code assumes that there will only ever be one "stayingGroup" per model.
+- In VSCode, right click ```./model/index.html``` and select "Open with Live Server" (download the VSCode extension) which should then run the simulation in a web browser.
+
 ### Walkthrough
-- 2024-05-29 
+- 2024-06-27
+- In directory ```./model```
+- Requires a ```user_input.json``` file that defines which molecule should move ("movingGroup") and which should stay ("stayingGroup").
+#### main.js
 - ```createModelFromJson(jsonData);```
-  - Parses the JSON model.xml and extracts all pertinent information as a set of Objects (associative arrays) as defined in model.js
+  - Parses the JSON model.xml and extracts all pertinent information as a set of Objects (associative arrays) as defined in ```model.js```
   - All reactant rules are parsed into the rules Object, and each rule includes another set of Objects parsed from the model (e.g. product bonds, product molecule components etc)
-- ```defineBondsFromReactionRules(model.rules);```
-  - Iterates through the Reaction Rules of the model and stores all products and reactants as more simple indexed arrays which can be accessed a little easier than Objects
-  - e.g. Reactant Rules' product molecules is stored as an indexed array, and corresponding sites and IDs (e.g. "RR1_PP1_M1_C1") are stored also as separate indexed arrays (aka they should all correspond with each other by index)
-- Requires a user input json file that defines which molecule should move and which should stay. At the moment I think this code only supports one of each of these.
-- ```createMoleculeModelGroups``` is a more simple version of ```createMoleculeGroups``` for visualizing just the rules. 
-- ```createMoleculeGroups``` is for visualizing the simulation firings, wherein there will be multiple particles of each molecule. Both classes take in svg content, perform some visualization manipulations, and return named group elements back to main.js
+- ```createMoleculeModelGroups``` is just for visualzing the rules (not simulation) and is simpler version of ```createMoleculeGroups```, which is for visualizing simulation firings. Both classes take in svg content, perform some visualization manipulations via ```representation.js```, and return named group elements back to ```main.js```
   - The molecule ```typeID``` as defined in model.json is used as the index for the group elements. So if the typeID for mrna is 0, then all the SVG group elements for mRNA will be in the zero indexed position of the array.
+- ```iterateAndVisualizeReactionRules```: mostly the same as ```iterateAndVisualizeSimulationFirings``` below but just for visualizing the rules
 - ```iterateAndVisualizeSimulationFirings```
-  - Takes in the array of group elements that are all named after the molecule and number as defined by model.json and model.xml
-  - determines which molecule should be moving and which should be staying put based on user input 
+  - Takes in the array of group elements that are all named after the molecule and ID number as defined by model.json and model.xml
+  - determines which molecule should be moving and which should be staying put based on ```user_input.json```
   - determines the ```typeID``` based on molecule name for both the moving molecule and the staying molecule from model.json
   - gets the array of SVG group elements using this typeID as the index
   - iterates through simulation firings
-    - uses the name of the firing to match with the model rules and definedBonds arrays
+    - uses the name of the firing to match with the model rules
 - TODO
-  - include the firing number
-  - include viz of states
-  - visualize a more complex model
-  - maybe need to add functionality to do the inital set of "ops", so far the models I've used have not had anything under "ops"
-    - on a related note, so far the model.json files I've used have been missing one bracket [ in the initial "ops" section
-  - need to include functionality for AddMolecule, DeleteMolecule, StateChange
+  - could include viz of the firing number for reference
+  - maybe need to add functionality to do the inital set of "ops" in model.json, so far the models I've used have not had anything under "ops" so I have not considered it at all
+  - need to include viz functionality for AddMolecule, DeleteMolecule, StateChange
+  - in a more complex model (e.g. with multiple molecules that could move depending on the firings, and ones that could move while bonded to other ones based on previous rules), need to check if molecules are bonded and if they should move together

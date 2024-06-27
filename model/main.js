@@ -1,6 +1,6 @@
 import { SVG } from './lib/svg.esm.js';
 import { Model, Monomer, Parameter, Rule, InitialCondition } from './model.js';
-import { MoleculeRepresentation, CreateSVGMolecules, DefineBonds, CreateSVGModelMolecules} from './representation.js';
+import { MoleculeRepresentation, CreateSVGMolecules, CreateSVGModelMolecules} from './representation.js';
 import { xmlToObject } from './utils/xmlToObject.js';
 import { fetchSvgContent } from './utils/fetchSvgContent.js';
 
@@ -204,25 +204,6 @@ async function createMoleculeGroups(monomer, simulation, userInput, svgBasePath 
     return group;
 }
 
-function defineBondsFromReactionRules(reactionRules) {
-    const interactomeByRule = [];
-    for (let rule of reactionRules) {
-        const defineBonds = new DefineBonds(rule);
-        defineBonds.BondInteractors(rule.product_mol, rule.product_mol_components, rule.product_bonds);
-        defineBonds.Reactants(rule.reactant_mol, rule.reactant_mol_components);
-        interactomeByRule.push(defineBonds);
-    }
-    return interactomeByRule;
-}
-
-function getIndexByKeyValue(inputList, key, value) {
-    for (let i = 0; i < inputList.length; i++) {
-        if (inputList[i][key] === value) {
-            return i;
-        }
-    }
-}
-
 function getIndicesByKeyValue(inputList, key, value) {
     const indices = [];
     for (let i = 0; i < inputList.length; i++) {
@@ -294,22 +275,6 @@ function getDeleteBondOp(ops) {
     for (let i = 0; i < ops.length; i++) {
         if (ops[i][0] === "DeleteBond") {
             return ops[i].slice(1);
-        }
-    }
-}
-
-function getIndexByValue(list, value) {
-    for (let i = 0; i < list.length; i++) {
-        if (list[i] === value) {
-            return i;
-        }
-    }
-}
-
-function getBondByName(ruleName, definedBonds) {
-    for (let i = 0; i < definedBonds.length; i++) {
-        if (definedBonds[i].name === ruleName) {
-            return definedBonds[i];
         }
     }
 }
@@ -408,6 +373,7 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
     const whichStaying = getStayingMolNames(userInput);
     const movingGroups = getSVGsByName(svgGroupsList, whichMoving);
     const stayingGroups = getSVGsByName(svgGroupsList, whichStaying);
+    const groupedSVGs = [];
     
     const svgContainer = document.getElementById("ruleVisualization");
     const containerWidth = svgContainer.getBoundingClientRect().width;
@@ -423,20 +389,15 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
     }
     
     for (let i = 0; i < movingGroups.length; i++) {
-        var bbox = movingGroups[i].bbox();
-        // SVG().addTo(svgContainer).rect(bbox.width, bbox.height).fill('none').stroke({color: 'black', width: 1});
         movingGroups[i].addTo(svgContainer);
         movingPos = {x: (containerWidth / (movingGroups.length - i) - 200), y: containerHeight / 5};
         movingGroups[i].transform({translate: movingPos});
-        // bbox = movingGroups[i].bbox();
-        // SVG().addTo(svgContainer).rect(bbox.width, bbox.height).transform({translate: movingPos}).fill('none').stroke({color: 'blue', width: 1});
     }
     
-    // while (true) {
+    while (true) {
         for (let index = 0; index < reactionRules.length; index++) {
             const rule = reactionRules[index];
             const operations = rule.operations;
-            // console.log(rule);
 
             for (const [key, value] of Object.entries(operations)) {
                 const type = value.type;
@@ -511,12 +472,10 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
                     const movingSiteGroup = getSVGByName(moveFromSVGSites, movingSiteName);
                     const x1 = movingSiteGroup.cx() + movingGroup.transform().translateX;
                     const y1 = movingSiteGroup.cy() + movingGroup.transform().translateY;
-                    // SVG().circle().fill('red').cx(x1).cy(y1).radius(5).addTo(svgContainer);
                     const moveToSVGSites = stayingGroup.find('circle');
                     const stayingSiteGroup = getSVGByName(moveToSVGSites, stayingSiteName);
                     const x2 = stayingSiteGroup.cx() + stayingGroup.transform().translateX;
                     const y2 = stayingSiteGroup.cy() + stayingGroup.transform().translateY;
-                    // SVG().circle().fill('red').cx(x2).cy(y2).radius(5).addTo(svgContainer);
                     const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
                     const duration = distance * 10;
 
@@ -524,21 +483,16 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
 
                     if ( (twoRPsBecomeOnePP === true) && bothMoving === true) {
                         // if two reactants become one product and both are moving, then they probably will move together following?
-
-                        // const newX = stayingGroup.transform().translateX;
-                        // const newY = stayingGroup.transform().translateY;
-                        // SVG().circle().radius(5).fill('purple').addTo(svgContainer).transform({translate: {x: newX, y: newY}});
                         const draw = SVG().addTo(svgContainer);
                         const parentGroup = draw.group();
                         parentGroup.add(movingGroup);
                         parentGroup.add(stayingGroup);
                         const groupedSVG = parentGroup.node;
                         groupedSVG.id = movingGroup.node.id + "_" + stayingGroup.node.id;
-                        // bbox = parentGroup.bbox();
-                        // SVG().addTo(svgContainer).rect(bbox.width, bbox.height).fill('none').stroke({color: 'green', width: 3}).translate(parentGroup.x(), parentGroup.y());
+                        groupedSVGs.push(groupedSVG);
                     }
-                    else {
-
+                    else if ( (twoRPsBecomeOnePP != true) && bothMoving === true ) {
+                        error("Both molecules are moving, but they are not both becoming one product.");
                     };
                 }
                 else if (type === "AddMolecule") {
@@ -558,10 +512,31 @@ async function iterateAndVisualizeReactionRules(reactionRules, svgGroupsList, us
                 await animateSVGDeleteBond(movingGroup, duration, x1, y1, x2, y2);
                 await animateSVGRestart(movingGroup, duration, movingPos);
             }
-        if (index > 300) {break;}
+        if (index > 300) {
+            // console.log(groupedSVGs);
+            break;}
         }
-    // }
+    }
 }
+
+function checkIfGrouped(groupedSVGs, groupedName1, groupedName2) {
+    var grouped = false;
+    let regex1 = new RegExp(groupedName1);
+    let regex2 = new RegExp(groupedName2);
+    for (let n = 0; n < groupedSVGs.length; n++) {
+        let svgId = groupedSVGs[n].id;
+        if (regex1.test(svgId)) {
+            grouped = true;
+            break;
+        }
+        else if (regex2.test(svgId)) {
+            grouped = true;
+            break;
+        }
+    }
+    return grouped;
+}
+
 
 async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, firings, moleculeTypes, userInput) {
     const svgContainer = document.getElementById("simulationVisualization");
@@ -569,11 +544,10 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
     const containerHeight = svgContainer.getBoundingClientRect().height;
     const whichMoving = getMovingMolNames(userInput);
     const whichStaying = getStayingMolNames(userInput);
-    console.log(svgGroupsList);
+    const groupedSVGs = [];
 
     var position, movPosition;
     for (let i = 0; i < svgGroupsList.length; i++) {
-        console.log(i);
         for (let key in svgGroupsList[i]) {
             const groups = svgGroupsList[i][key];
             for (let j = 0; j < groups.length; j++) {
@@ -599,6 +573,12 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
         const ruleName = props[0];
         const rule = getRuleByPropsName(modelRules, ruleName);
         const operations = rule.operations;
+
+        var twoRPsBecomeOnePP = false;
+        // check if two reactants become one product
+        if (rule.reactant_patterns.length === 2 && rule.product_patterns.length === 1) {
+            twoRPsBecomeOnePP = true;
+        }           
         
         for (const [key, value] of Object.entries(operations)) {
             const type = value.type;
@@ -678,9 +658,20 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                 const molName2 = getMoleculeByMolComp(group2, rule.reactant_mol);
                 const molTypeId1 = getTypeIdFromMolName(moleculeTypes, molName1);
                 const molTypeId2 = getTypeIdFromMolName(moleculeTypes, molName2);
+                var bothMoving = false;
+                
+                const groupedName1 = [molName1, molNum1].join("_");
+                const groupedName2 = [molName2, molNum2].join("_");
+                const groupedName = [molName1, molNum1, molName2, molNum2].join("_");
+                // console.log(groupedName1, groupedName2);
+                let grouped = checkIfGrouped(groupedSVGs, groupedName1, groupedName2);
+                if (grouped == true){
+                    console.log('bonded molecules what to do next', groupedName);
+                    console.log(rule);
+                }
 
-                if (whichMoving.includes(molName1) && whichMoving.includes(molName2)) {
-                    // if both are moving, then arbitrarily designate one as moving and the other as staying
+                if (whichMoving.includes(molName1) && whichMoving.includes(molName2) && grouped === false) {
+                    // if both are moving and they haven't bonded before, then arbitrarily designate one as moving and the other as staying
                     movingGroups = getSVGListByTypeId(svgGroupsList, molTypeId1);
                     movingMolName = molName1;
                     movingSiteName = molSiteName1;
@@ -691,8 +682,9 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                     stayingSiteName = molSiteName2;
                     stayingTypeId = molTypeId2;
                     stayingMolNum = molNum2;
+                    bothMoving = true;
                 }
-                else if (whichStaying.includes(molName1) && whichStaying.includes(molName2)) {
+                else if (whichStaying.includes(molName1) && whichStaying.includes(molName2) && grouped === false) {
                     // if both are staying, then arbitrarily designate one as moving and the other as staying
                     movingGroups = getSVGListByTypeId(svgGroupsList, molTypeId1);
                     movingMolName = molName1;
@@ -705,7 +697,7 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                     stayingTypeId = molTypeId2;
                     stayingMolNum = molNum2;
                 }
-                else if (whichMoving.includes(molName1) && whichStaying.includes(molName2)) {
+                else if (whichMoving.includes(molName1) && whichStaying.includes(molName2) && grouped === false) {
                     movingGroups = getSVGListByTypeId(svgGroupsList, molTypeId1);
                     movingMolName = molName1;
                     movingSiteName = molSiteName1;
@@ -717,7 +709,7 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                     stayingTypeId = molTypeId2;
                     stayingMolNum = molNum2;
                 }
-                else if (whichStaying.includes(molName1) && whichMoving.includes(molName2)) {
+                else if (whichStaying.includes(molName1) && whichMoving.includes(molName2) && grouped === false) {
                     movingGroups = getSVGListByTypeId(svgGroupsList, molTypeId2);
                     movingMolName = molName2;
                     movingSiteName = molSiteName2;
@@ -745,6 +737,20 @@ async function iterateAndVisualizeSimulationFirings(modelRules, svgGroupsList, f
                 const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
                 const duration = distance * 10; // increase number to increase how long it takes to move
                 await animateSVGAddBond(movingGroup_i, movingSiteGroup, duration, x1, y1, x2, y2);
+
+                if ( twoRPsBecomeOnePP === true && bothMoving === true && grouped === false) {
+                    // if two reactants become one product and both are moving, then they probably will move together following?
+                    const draw = SVG().addTo(svgContainer);
+                    const parentGroup = draw.group();
+                    parentGroup.add(movingGroup_i);
+                    parentGroup.add(stayingGroup_i);
+                    const groupedSVG = parentGroup.node;
+                    groupedSVG.id = movingGroup_i.node.id + "_" + stayingGroup_i.node.id;
+                    groupedSVGs.push(groupedSVG);
+                }
+                else if ( twoRPsBecomeOnePP != true && bothMoving === true ) {
+                    error("Both molecules are moving, but they are not both becoming one product.");
+                };            
             }
             else if (type === "AddMolecule") {
                 // figure out what to visualize in this case
@@ -775,7 +781,6 @@ async function main() {
     const svgBasePath = "./svg/";
     const jsonData = await fetchAndProcessXML(xmlUrl);
     const model = await createModelFromJson(jsonData);
-    const definedBonds = defineBondsFromReactionRules(model.rules);
     const userInput = await fetch("./model_xml/user_input.json").then(response => response.json());
     const simulation = await fetch("./model_xml/model.json").then(response => response.json());
     const firings = simulation["simulation"]["firings"];
